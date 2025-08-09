@@ -1,63 +1,137 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
-const token = process.env.STRAPI_PEDIDOS_TOKEN;
+function toNumberOrNull(v: any): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function toId(value: any): number | undefined | null {
+  if (value === undefined) return undefined; // no tocar
+  if (value === null) return null; // desvincular
+  if (typeof value === "object" && value && "id" in value) return toNumberOrNull((value as any).id);
+  return toNumberOrNull(value);
+}
+function toIdsArray(value: any): number[] | undefined | null {
+  if (value === undefined) return undefined; // no tocar
+  if (value === null) return null; // desvincular
+  const arr = Array.isArray(value) ? value : [value]; // acepta single o array
+  const ids = arr
+    .map((v) => (v && typeof v === "object" && "id" in v ? (v as any).id : v))
+    .map(toNumberOrNull)
+    .filter((n): n is number => n != null);
+  return ids;
+}
+function stripUndefined<T extends Record<string, any>>(obj: T): T {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) if (v !== undefined) out[k] = v;
+  return out as T;
+}
+function slugify(text?: string): string | undefined {
+  if (!text) return undefined;
+  return text
+    .toString()
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
+}
+function normalizeProductPayload(input: any) {
+  const {
+    id,
+    documentId,
+    createdAt,
+    updatedAt,
+    publishedAt,
+    img,
+    img_carousel,
+    category,
+    recetas,
+    ingredientes,
+    price,
+    stock,
+    productName,
+    slug,
+    ...rest
+  } = input ?? {};
 
-export async function GET() {
-  const res = await fetch(`${backend}/api/products?populate=*`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  const data = {
+    ...rest,
+    productName,
+    slug: slug || slugify(productName),
+    price: price === undefined ? undefined : toNumberOrNull(price),
+    stock: stock === undefined ? undefined : toNumberOrNull(stock),
+    // multiple-media arrays:
+    img: toIdsArray(img),
+    img_carousel: toIdsArray(img_carousel),
+    // relaciones:
+    category: toId(category),
+    recetas: toIdsArray(recetas),
+    ingredientes: toIdsArray(ingredientes),
+  };
+
+  return stripUndefined(data);
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const token = process.env.STRAPI_API_TOKEN;
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!token || !base) return NextResponse.json({ error: "Missing envs" }, { status: 500 });
+
+    const urlObj = new URL(req.url);
+    const sp = urlObj.searchParams;
+    if (!sp.has("populate")) sp.set("populate", "*");
+
+    const res = await fetch(`${base}/api/products?${sp.toString()}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+
+    const text = await res.text();
+    let data: any = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      return NextResponse.json({ error: "Strapi error", status: res.status, body: data ?? text }, { status: res.status });
+    }
+    return NextResponse.json(data, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw = await req.text();
+    if (!raw) return NextResponse.json({ error: "Empty body" }, { status: 400 });
 
+    let body: any;
+    try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-    const {
-      id,
-      documentId,
-      createdAt,
-      updatedAt,
-      publishedAt,
-      img,
-      img_carousel,
-      category,
-      recetas,
-      ingredientes,
-      ...rest
-    } = body;
+    const cleanBody = normalizeProductPayload(body);
 
-    const cleanBody = {
-      ...rest,
-      img: typeof img === "object" && img?.id ? img.id : img,
-      img_carousel: Array.isArray(img_carousel)
-        ? img_carousel.map((i) => i.id || i)
-        : [],
-      category: typeof category === "object" ? category.id : category,
-      recetas: Array.isArray(recetas)
-        ? recetas.map((r) => r.id || r)
-        : [],
-      ingredientes: Array.isArray(ingredientes)
-        ? ingredientes.map((i) => i.id || i)
-        : [],
-    };
+    const token = process.env.STRAPI_API_TOKEN;
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!token || !base) return NextResponse.json({ error: "Missing envs" }, { status: 500 });
 
-    const res = await fetch(`${backend}/api/products`, {
+    const res = await fetch(`${base}/api/products`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ data: cleanBody }),
+      cache: "no-store",
     });
 
-    const json = await res.json();
-    return NextResponse.json(json, { status: res.status });
-  } catch (err) {
-    console.error("❌ Error interno al crear producto:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    const text = await res.text();
+    let data: any = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      return NextResponse.json({ error: "Strapi error", status: res.status, body: data ?? text }, { status: res.status });
+    }
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }
