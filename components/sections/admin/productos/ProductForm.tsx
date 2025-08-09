@@ -8,7 +8,8 @@ interface Props {
   form: any;
   setForm: Dispatch<SetStateAction<any>>;
   ingredientes: any[];
- onMainUpload: (
+  categories: { id: number; documentId: string; categoryNames: string }[];
+  onMainUpload: (
     files: FileList | File[]
   ) => Promise<{ ids: { id: number }[]; urls: string[] }>;
   onCarouselUpload: (
@@ -17,8 +18,7 @@ interface Props {
   uploading: boolean;
   onSave: () => void;
 }
-
-export default function ProductForm({ form, setForm, ingredientes, onMainUpload, onCarouselUpload, uploading, onSave }: Props) {
+export default function ProductForm({ form, setForm, ingredientes, categories, onMainUpload, onCarouselUpload, uploading, onSave }: Props) {
 
   const sabores = [
     "fideos",
@@ -93,14 +93,15 @@ export default function ProductForm({ form, setForm, ingredientes, onMainUpload,
           <label className="text-sm font-semibold text-[#5A3E1B]">Categoría</label>
           <select
             value={form.category || ""}
-            onChange={(e) => setForm({ ...form, category: Number(e.target.value) })}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
             className="w-full rounded-md border border-[#e6cdb0] bg-[#fff7ee] px-3 py-2 text-sm text-[#5A3E1B]"
           >
             <option value="" disabled>Seleccionar categoría</option>
-            <option value={2}>Pastas</option>
-            <option value={3}>Postres</option>
-            <option value={1}>Quesos</option>
-            <option value={4}>Salsas</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.documentId}>
+                {cat.categoryNames}
+              </option>
+            ))}
           </select>
         </div>
       </div>
