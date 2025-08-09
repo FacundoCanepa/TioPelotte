@@ -4,10 +4,17 @@ function toNumberOrNull(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
-function toId(value: any): number | undefined | null {
+function toId(value: any): number | string | undefined | null {
   if (value === undefined) return undefined; // no tocar
   if (value === null) return null; // desvincular
-  if (typeof value === "object" && value && "id" in value) return toNumberOrNull((value as any).id);
+   if (typeof value === "object" && value) {
+    if ("documentId" in value) return String((value as any).documentId);
+    if ("id" in value) return toNumberOrNull((value as any).id);
+  }
+  if (typeof value === "string") {
+    const n = toNumberOrNull(value);
+    return n ?? value;
+  }
   return toNumberOrNull(value);
 }
 function toIdsArray(value: any): number[] | undefined | null {
