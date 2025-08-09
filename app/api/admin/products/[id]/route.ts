@@ -8,9 +8,6 @@ function toNumberOrNull(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
-function isDigitString(s: any): boolean {
-  return typeof s === "string" && /^\d+$/.test(s.trim());
-}
 function stripUndefined<T extends Record<string, any>>(obj: T): T {
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(obj)) if (v !== undefined) out[k] = v;
@@ -37,87 +34,69 @@ function toIdsArray(value: any): number[] | undefined | null {
     .filter((n): n is number => n != null);
   return ids;
 }
-function buildOneToOneRelation(value: any, logPrefix = "category"):
+function buildOneToOneRelation(
+  value: any,
+  logPrefix = "category",
+):
   | undefined
-  | { connect: Array<{ id?: number; documentId?: string }> }
-  | { disconnect: true }
-{
+  | { connect: { documentId: string } }
+  | { disconnect: true } {
   if (value === undefined) {
-    console.log(`🔵 [${logPrefix}] (PUT) undefined → NO TOCAR`);
+    console.log(`🔵 [${logPrefix}] undefined → NO TOCAR (omitir)`);
     return undefined;
   }
   if (value === null) {
-    console.log(`🔵 [${logPrefix}] (PUT) null → { disconnect: true }`);
+    console.log(`🔵 [${logPrefix}] null → { disconnect: true }`);
     return { disconnect: true };
   }
 
   if (typeof value === "object" && value) {
-    const vid = (value as any).id;
-    const vdoc = (value as any).documentId;
-    if (vid != null && isDigitString(String(vid))) {
-      console.log(`🔵 [${logPrefix}] (PUT) objeto.id → connect by id:`, Number(vid));
-      return { connect: [{ id: Number(vid) }] };
-    }
+    const vdoc = (value as any).documentId ?? (value as any).id;
     if (typeof vdoc === "string" && vdoc.trim()) {
-      console.log(`🔵 [${logPrefix}] (PUT) objeto.documentId → connect by documentId:`, vdoc.trim());
-      return { connect: [{ documentId: vdoc.trim() }] };
+      console.log(`🔵 [${logPrefix}] objeto.(id|documentId) → connect by documentId:`, vdoc.trim());
+      return { connect: { documentId: vdoc.trim() } };
     }
   }
 
-  if (typeof value === "number" || isDigitString(value)) {
-    const n = toNumberOrNull(value);
-    console.log(`🔵 [${logPrefix}] (PUT) num/dígitos → connect by id:`, n);
-    return { connect: [{ id: n! }] };
+  if (typeof value === "string" || typeof value === "number") {
+    const doc = String(value).trim();
+    if (doc) {
+      console.log(`🟠 [${logPrefix}] primitivo → connect by documentId:`, doc);
+      return { connect: { documentId: doc } };
+    }
   }
 
-  if (typeof value === "string" && value.trim()) {
-    console.log(`🟠 [${logPrefix}] (PUT) string no numérico → connect by documentId:`, value.trim());
-    return { connect: [{ documentId: value.trim() }] };
-  }
-
-  console.log(`🟡 [${logPrefix}] (PUT) valor no reconocido → no tocar`);
+  console.log(`🟡 [${logPrefix}] valor no reconocido → NO TOCAR`);
   return undefined;
 }
 
 function normalizeProductPayload(input: any) {
-  console.log("🧾 [normalize PUT] input keys:", Object.keys(input ?? {}));
-  console.log("🧾 [normalize PUT] category (raw):", input?.category, "type:", typeof input?.category);
+  console.log("🧾 [normalize] input keys:", Object.keys(input ?? {}));
+  console.log("🧾 [normalize] category (raw):", input?.category, "type:", typeof input?.category);
 
   const {
-    id,
-    documentId,
-    createdAt,
-    updatedAt,
-    publishedAt,
-    img,
-    img_carousel,
-    category,
-    recetas,
-    ingredientes,
-    price,
-    stock,
-    productName,
-    slug,
-    ...rest
+    id, documentId, createdAt, updatedAt, publishedAt,
+    img, img_carousel, category, recetas, ingredientes,
+    price, stock, productName, slug, ...rest
   } = input ?? {};
 
   const data: Record<string, any> = {
     ...rest,
     productName,
     slug: slug || slugify(productName),
-    price: price === undefined ? undefined : toNumberOrNull(price),
-    stock: stock === undefined ? undefined : toNumberOrNull(stock),
+    price: price === undefined ? undefined : Number(price),
+    stock: stock === undefined ? undefined : Number(stock),
     img: toIdsArray(img),
     img_carousel: toIdsArray(img_carousel),
     recetas: toIdsArray(recetas),
     ingredientes: toIdsArray(ingredientes),
   };
 
-  const catRel = buildOneToOneRelation(category, "category");
-  if (catRel !== undefined) data.category = catRel;
+  const cat = buildOneToOneRelation(category, "category");
+  if (cat !== undefined) data.category = cat;
 
   const cleaned = stripUndefined(data);
-  console.log("🧼 [normalize PUT] payload limpio:", cleaned);
+  console.log("🧼 [normalize] payload limpio:", cleaned);
   return cleaned;
 }
 

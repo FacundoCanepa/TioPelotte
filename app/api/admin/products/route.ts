@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/* =========================
-   Helpers + Normalización
-   ========================= */
 
 function toNumberOrNull(v: any): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-function isDigitString(s: any): boolean {
-  return typeof s === "string" && /^\d+$/.test(s.trim());
 }
 function stripUndefined<T extends Record<string, any>>(obj: T): T {
   const out: Record<string, any> = {};
@@ -42,92 +36,69 @@ function toIdsArray(value: any): number[] | undefined | null {
 /** Construye payload de relación oneToOne para Strapi v5 (connect/disconnect).
  *  Acepta: undefined | null | number | string | {id}|{documentId}
  */
-function buildOneToOneRelation(value: any, logPrefix = "category"):
+function buildOneToOneRelation(
+  value: any,
+  logPrefix = "category",
+):
   | undefined
-  | { connect: Array<{ id?: number; documentId?: string }> }
-  | { disconnect: true }
-{
+  | { connect: { documentId: string } }
+  | { disconnect: true } {
   if (value === undefined) {
-    console.log(`🔵 [${logPrefix}] value: undefined → NO TOCAR (se omite el campo)`);
+    console.log(`🔵 [${logPrefix}] undefined → NO TOCAR (omitir)`);
     return undefined;
   }
   if (value === null) {
-    console.log(`🔵 [${logPrefix}] value: null → { disconnect: true }`);
+    console.log(`🔵 [${logPrefix}] null → { disconnect: true }`);
     return { disconnect: true };
   }
 
-  // Objeto con id o documentId
   if (typeof value === "object" && value) {
-    const vid = (value as any).id;
-    const vdoc = (value as any).documentId;
-    if (vid != null && isDigitString(String(vid))) {
-      console.log(`🔵 [${logPrefix}] objeto.id → connect by id:`, Number(vid));
-      return { connect: [{ id: Number(vid) }] };
-    }
+    const vdoc = (value as any).documentId ?? (value as any).id;
     if (typeof vdoc === "string" && vdoc.trim()) {
-      console.log(`🔵 [${logPrefix}] objeto.documentId → connect by documentId:`, vdoc.trim());
-      return { connect: [{ documentId: vdoc.trim() }] };
+      console.log(`🔵 [${logPrefix}] objeto.(id|documentId) → connect by documentId:`, vdoc.trim());
+      return { connect: { documentId: vdoc.trim() } };
     }
   }
 
-  // Número o string numérico
-  if (typeof value === "number" || isDigitString(value)) {
-    const n = toNumberOrNull(value);
-    console.log(`🔵 [${logPrefix}] num/dígitos → connect by id:`, n);
-    return { connect: [{ id: n! }] };
+  if (typeof value === "string" || typeof value === "number") {
+    const doc = String(value).trim();
+    if (doc) {
+      console.log(`🟠 [${logPrefix}] primitivo → connect by documentId:`, doc);
+      return { connect: { documentId: doc } };
+    }
   }
 
-  // String no numérico → documentId
-  if (typeof value === "string" && value.trim()) {
-    console.log(`🟠 [${logPrefix}] string no numérico → connect by documentId:`, value.trim());
-    return { connect: [{ documentId: value.trim() }] };
-  }
-
-  console.log(`🟡 [${logPrefix}] valor no reconocido → no tocar`);
+  console.log(`🟡 [${logPrefix}] valor no reconocido → NO TOCAR`);
   return undefined;
 }
 
 function normalizeProductPayload(input: any) {
-  console.log("🧾 [normalize POST] input keys:", Object.keys(input ?? {}));
-  console.log("🧾 [normalize POST] category (raw):", input?.category, "type:", typeof input?.category);
+  console.log("🧾 [normalize] input keys:", Object.keys(input ?? {}));
+  console.log("🧾 [normalize] category (raw):", input?.category, "type:", typeof input?.category);
 
   const {
-    id,
-    documentId,
-    createdAt,
-    updatedAt,
-    publishedAt,
-    img,
-    img_carousel,
-    category,
-    recetas,
-    ingredientes,
-    price,
-    stock,
-    productName,
-    slug,
-    ...rest
+    id, documentId, createdAt, updatedAt, publishedAt,
+    img, img_carousel, category, recetas, ingredientes,
+    price, stock, productName, slug, ...rest
   } = input ?? {};
 
-  // base
   const data: Record<string, any> = {
     ...rest,
     productName,
     slug: slug || slugify(productName),
-    price: price === undefined ? undefined : toNumberOrNull(price),
-    stock: stock === undefined ? undefined : toNumberOrNull(stock),
+    price: price === undefined ? undefined : Number(price),
+    stock: stock === undefined ? undefined : Number(stock),
     img: toIdsArray(img),
     img_carousel: toIdsArray(img_carousel),
     recetas: toIdsArray(recetas),
     ingredientes: toIdsArray(ingredientes),
   };
 
-  // relación oneToOne category (v5 connect/disconnect)
-  const catRel = buildOneToOneRelation(category, "category");
-  if (catRel !== undefined) data.category = catRel;
+  const cat = buildOneToOneRelation(category, "category");
+  if (cat !== undefined) data.category = cat;
 
   const cleaned = stripUndefined(data);
-  console.log("🧼 [normalize POST] payload limpio:", cleaned);
+  console.log("🧼 [normalize] payload limpio:", cleaned);
   return cleaned;
 }
 
