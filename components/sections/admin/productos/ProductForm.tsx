@@ -200,7 +200,7 @@ export default function ProductForm({ form, setForm, ingredientes, onMainUpload,
                   }));
                 }}
               />
-              {ing.nombre}
+              {ing.ingredienteName}
             </label>
           ))}
         </div>

@@ -1,14 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-  const body = await req.json();
+/* =========================
+   Helpers + Normalización
+   ========================= */
+
+function toNumberOrNull(v: any): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function isDigitString(s: any): boolean {
+  return typeof s === "string" && /^\d+$/.test(s.trim());
+}
+function stripUndefined<T extends Record<string, any>>(obj: T): T {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) if (v !== undefined) out[k] = v;
+  return out as T;
+}
+function slugify(text?: string): string | undefined {
+  if (!text) return undefined;
+  return text
+    .toString()
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
+}
+function toIdsArray(value: any): number[] | undefined | null {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const arr = Array.isArray(value) ? value : [value];
+  const ids = arr
+    .map((v) => (v && typeof v === "object" && "id" in v ? (v as any).id : v))
+    .map(toNumberOrNull)
+    .filter((n): n is number => n != null);
+  return ids;
+}
+function buildOneToOneRelation(value: any, logPrefix = "category"):
+  | undefined
+  | { connect: Array<{ id?: number; documentId?: string }> }
+  | { disconnect: true }
+{
+  if (value === undefined) {
+    console.log(`🔵 [${logPrefix}] (PUT) undefined → NO TOCAR`);
+    return undefined;
+  }
+  if (value === null) {
+    console.log(`🔵 [${logPrefix}] (PUT) null → { disconnect: true }`);
+    return { disconnect: true };
+  }
+
+  if (typeof value === "object" && value) {
+    const vid = (value as any).id;
+    const vdoc = (value as any).documentId;
+    if (vid != null && isDigitString(String(vid))) {
+      console.log(`🔵 [${logPrefix}] (PUT) objeto.id → connect by id:`, Number(vid));
+      return { connect: [{ id: Number(vid) }] };
+    }
+    if (typeof vdoc === "string" && vdoc.trim()) {
+      console.log(`🔵 [${logPrefix}] (PUT) objeto.documentId → connect by documentId:`, vdoc.trim());
+      return { connect: [{ documentId: vdoc.trim() }] };
+    }
+  }
+
+  if (typeof value === "number" || isDigitString(value)) {
+    const n = toNumberOrNull(value);
+    console.log(`🔵 [${logPrefix}] (PUT) num/dígitos → connect by id:`, n);
+    return { connect: [{ id: n! }] };
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    console.log(`🟠 [${logPrefix}] (PUT) string no numérico → connect by documentId:`, value.trim());
+    return { connect: [{ documentId: value.trim() }] };
+  }
+
+  console.log(`🟡 [${logPrefix}] (PUT) valor no reconocido → no tocar`);
+  return undefined;
+}
+
+function normalizeProductPayload(input: any) {
+  console.log("🧾 [normalize PUT] input keys:", Object.keys(input ?? {}));
+  console.log("🧾 [normalize PUT] category (raw):", input?.category, "type:", typeof input?.category);
 
   const {
-    id: _,
+    id,
     documentId,
     createdAt,
     updatedAt,
@@ -17,71 +93,199 @@ export async function PUT(
     img_carousel,
     category,
     recetas,
+    ingredientes,
+    price,
+    stock,
+    productName,
+    slug,
     ...rest
-  } = body;
+  } = input ?? {};
 
-  const cleanBody = {
+  const data: Record<string, any> = {
     ...rest,
-    img: typeof img === 'object' && img?.[0]?.id ? img[0].id : img,
-    img_carousel: Array.isArray(img_carousel)
-      ? img_carousel.map((i) => i.id)
-      : [],
-    category: typeof category === 'object' ? category.id : category,
-    recetas: Array.isArray(recetas) ? recetas.map((r) => r.id) : [],
+    productName,
+    slug: slug || slugify(productName),
+    price: price === undefined ? undefined : toNumberOrNull(price),
+    stock: stock === undefined ? undefined : toNumberOrNull(stock),
+    img: toIdsArray(img),
+    img_carousel: toIdsArray(img_carousel),
+    recetas: toIdsArray(recetas),
+    ingredientes: toIdsArray(ingredientes),
   };
 
+  const catRel = buildOneToOneRelation(category, "category");
+  if (catRel !== undefined) data.category = catRel;
+
+  const cleaned = stripUndefined(data);
+  console.log("🧼 [normalize PUT] payload limpio:", cleaned);
+  return cleaned;
+}
+
+/* ================
+   Handlers
+   ================ */
+
+// GET detalle (v5: :id = documentId)
+export async function GET(
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/products/${id}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
-        },
-        body: JSON.stringify({ data: cleanBody }),
-      }
-    );
+    const { id } = await ctx.params; // documentId
+    const token = process.env.STRAPI_API_TOKEN;
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!token || !base) {
+      console.error("⛔ Missing envs STRAPI_API_TOKEN or NEXT_PUBLIC_BACKEND_URL");
+      return NextResponse.json({ error: "Missing envs" }, { status: 500 });
+    }
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const data = await res.json();
+    const urlObj = new URL(req.url);
+    const sp = urlObj.searchParams;
+    if (!sp.has("populate")) sp.set("populate", "*");
+    const url = `${base}/api/products/${id}?${sp.toString()}`;
 
-    return NextResponse.json(data, { status: res.status });
-  } catch (error) {
-    console.error('❌ Error actualizando producto:', error);
-    return NextResponse.json(
-      { error: 'Error al actualizar el producto' },
-      { status: 500 }
-    );
+    console.log("🔎 [GET by documentId] →", url);
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const txt = await res.text();
+    console.log("⬅️ [GET by documentId] status:", res.status, "body:", txt);
+
+    let data: any = null;
+    try { data = JSON.parse(txt); } catch {}
+    if (!res.ok) {
+      console.error("⛔ [GET by documentId] error.");
+      return NextResponse.json({ error: "Strapi error", status: res.status, body: data ?? txt }, { status: res.status });
+    }
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (err: any) {
+    console.error("💥 Error GET /api/admin/products/[id]:", err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }
 
-export async function DELETE(
+// PUT (v5: :id = documentId)
+export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/products/${id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
-        },
-      }
-    );
-
-    if (res.status === 204) {
-      return new Response(null, { status: 204 });
+    const { id } = await ctx.params; // documentId
+    if (!id) {
+      console.error("⛔ Falta id en PUT");
+      return NextResponse.json({ error: "Missing id param" }, { status: 400 });
     }
 
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    const raw = await req.text();
+    console.log("🟠 [PUT] id (documentId):", id, "rawBody:", raw);
+    if (!raw) return NextResponse.json({ error: "Empty body" }, { status: 400 });
 
-    return NextResponse.json(data, { status: res.status });
-  } catch (err) {
-    console.error("❌ DELETE /products/[id] error:", err);
-    return new Response("Error interno del servidor", { status: 500 });
+    let body: any;
+    try { body = JSON.parse(raw); }
+    catch (e) {
+      console.error("⛔ [PUT] Invalid JSON:", e);
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const token = process.env.STRAPI_API_TOKEN;
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!token || !base) {
+      console.error("⛔ Missing envs STRAPI_API_TOKEN or NEXT_PUBLIC_BACKEND_URL");
+      return NextResponse.json({ error: "Missing envs" }, { status: 500 });
+    }
+
+    const cleanData = normalizeProductPayload(body);
+
+    const url = `${base}/api/products/${id}`; // v5: por documentId
+    console.log("📤 [PUT] →", url, "payload:", JSON.stringify({ data: cleanData }));
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ data: cleanData }),
+      cache: "no-store",
+    });
+
+    const txt = await res.text();
+    console.log("⬅️ [PUT] status:", res.status, "body:", txt);
+
+    let updated: any = null;
+    try { updated = JSON.parse(txt); } catch {}
+    if (!res.ok) {
+      return NextResponse.json({ error: "Strapi error", status: res.status, body: updated ?? txt }, { status: res.status });
+    }
+
+    // 🔁 REFETCH con populate=* usando documentId
+    try {
+      const savedDocId = updated?.data?.documentId || id;
+      const refetchUrl = `${base}/api/products/${savedDocId}?populate=*`;
+      console.log("🔎 [PUT→GET] refetch (by documentId):", refetchUrl);
+
+      const ref = await fetch(refetchUrl, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const refTxt = await ref.text();
+      console.log("⬅️ [PUT→GET] status:", ref.status, "body:", refTxt);
+
+      let refJson: any = null; try { refJson = JSON.parse(refTxt); } catch {}
+      if (ref.ok) return NextResponse.json(refJson, { status: 200 });
+      console.warn("⚠️ [PUT→GET] falló refetch, devuelvo respuesta del PUT");
+    } catch (e) {
+      console.warn("⚠️ [PUT→GET] error refetch:", e);
+    }
+
+    return NextResponse.json(updated, { status: 200 });
+  } catch (err: any) {
+    console.error("💥 Error PUT /api/admin/products/[id]:", err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
+  }
+}
+
+// DELETE (v5: :id = documentId)
+export async function DELETE(
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params; // documentId
+    if (!id) {
+      console.error("⛔ Falta id en DELETE");
+      return NextResponse.json({ error: "Missing id param" }, { status: 400 });
+    }
+
+    const token = process.env.STRAPI_API_TOKEN;
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!token || !base) {
+      console.error("⛔ Missing envs STRAPI_API_TOKEN or NEXT_PUBLIC_BACKEND_URL");
+      return NextResponse.json({ error: "Missing envs" }, { status: 500 });
+    }
+
+    const url = `${base}/api/products/${id}`; // v5: documentId
+    console.log("🗑️ [DELETE] →", url);
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+
+    if (res.status === 204) {
+      console.log("✅ [DELETE] 204 No Content");
+      return new NextResponse(null, { status: 204 });
+    }
+
+    const txt = await res.text();
+    console.log("⬅️ [DELETE] status:", res.status, "body:", txt);
+
+    let data: any = null;
+    try { data = JSON.parse(txt); } catch {}
+    if (!res.ok) {
+      return NextResponse.json({ error: "Strapi error", status: res.status, body: data ?? txt }, { status: res.status });
+    }
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (err: any) {
+    console.error("💥 Error DELETE /api/admin/products/[id]:", err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }
