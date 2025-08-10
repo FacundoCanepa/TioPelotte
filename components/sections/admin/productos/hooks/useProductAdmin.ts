@@ -61,22 +61,25 @@ export function useProductAdmin() {
     fetchIngredientes();
   }, [fetchProducts, fetchCategories, fetchIngredientes]);
 
-  const cleanPayload = (payload: any) => ({
-    ...payload,
-    unidadMedida: payload.unidadMedida?.trim().toLowerCase(),
-    img: Array.isArray(payload.img)
-      ? payload.img[0]?.id ?? null
-      : (payload.img as any)?.id ?? payload.img ?? null,
-    img_carousel: Array.isArray(payload.img_carousel)
-      ? payload.img_carousel.map((i: any) => i.id || i)
-      : [],
-    ingredientes: Array.isArray(payload.ingredientes)
-      ? payload.ingredientes.map((i: any) => i.id || i)
-      : [],
-    recetas: Array.isArray(payload.recetas)
-      ? payload.recetas.map((r: any) => r.id || r)
-      : [],
-  });
+const cleanPayload = (payload: any) => {
+    const { imgPreview, img_carousel_preview, ...rest } = payload;
+    return {
+      ...rest,
+      unidadMedida: rest.unidadMedida?.trim().toLowerCase(),
+      img: Array.isArray(rest.img)
+        ? rest.img[0]?.id ?? null
+        : (rest.img as any)?.id ?? rest.img ?? null,
+      img_carousel: Array.isArray(rest.img_carousel)
+        ? rest.img_carousel.map((i: any) => i.id || i)
+        : [],
+      ingredientes: Array.isArray(rest.ingredientes)
+        ? rest.ingredientes.map((i: any) => i.id || i)
+        : [],
+      recetas: Array.isArray(rest.recetas)
+        ? rest.recetas.map((r: any) => r.id || r)
+        : [],
+    };
+  };
 
   const createProduct = async (form: any) => {
     const payload = cleanPayload(form);

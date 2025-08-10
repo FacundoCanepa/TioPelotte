@@ -1,3 +1,9 @@
+export type StrapiMedia = {
+  id: number;
+  url: string;
+  alternativeText?: string;
+};
+
 export type ProductType = {
   id: number;
   documentId: string;
@@ -6,16 +12,9 @@ export type ProductType = {
   description: string;
   descriptionCorta: string | null;
 
-  img: {
-    id: number;
-    url: string;
-  }[];
-
-  img_carousel?: {
-    id: number;
-    url: string;
-        alternativeText?: string;
-  }[];
+  // Medias provenientes de Strapi
+  img: StrapiMedia | StrapiMedia[] | number | null;
+  img_carousel?: (StrapiMedia | number)[] | null;
 
   unidadMedida: string;
   taste: string;
@@ -28,6 +27,7 @@ export type ProductType = {
     id: number;
     categoryNames: string;
     slug: string;
+    documentId?: string;
   };
 
   ingredientes?: {
@@ -40,4 +40,8 @@ export type ProductType = {
 
   stock?: number;
   stockUpdatedAt?: string;
+
+  // Campos auxiliares de admin (opcionales)
+  imgPreview?: string | null;
+  img_carousel_preview?: string[] | null;
 };
