@@ -10,6 +10,8 @@ import ProductPreview from "./ProductPreview";
 import { useProductAdmin } from "./hooks/useProductAdmin";
 import { useImageUpload } from "./hooks/useImageUpload";
 import { ProductType } from "@/types/product";
+import { toMediaURL } from "@/utils/media";
+
 
 const generateSlug = (text: string) =>
   text
@@ -109,23 +111,17 @@ export default function ProductosSection() {
       img: Array.isArray(p.img)
         ? p.img[0]?.id ?? null
         : (p.img as any)?.id ?? null,
-      imgPreview: Array.isArray(p.img)
-        ? p.img[0]?.url
-          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${p.img[0].url}`
-          : ""
-        : (p.img as { url?: string } | null)?.url
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${(p.img as { url?: string }).url}`
-        : "",
+        imgPreview: Array.isArray(p.img)
+          ? toMediaURL(p.img[0]?.url || "")
+          : toMediaURL((p.img as { url?: string } | null)?.url || ""),
+
       img_carousel: Array.isArray(p.img_carousel)
         ? p.img_carousel.map((i: any) => ({ id: i.id }))
         : [],
       img_carousel_preview: Array.isArray(p.img_carousel)
-        ? p.img_carousel.map((i: any) =>
-            i.url.startsWith("/")
-              ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${i.url}`
-              : i.url
-          )
+        ? p.img_carousel.map((i: any) => toMediaURL(i?.url || ""))
         : [],
+
       documentId: p.documentId,
     });
     setEditingId(p.documentId);
