@@ -3,6 +3,7 @@
 import { useCartStore } from "@/store/cart-store";
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 const formatQuantity = (qty: number, unidad: string) => {
   const u = unidad?.trim().toLowerCase();
@@ -40,7 +41,7 @@ export default function CheckoutProductsList() {
           {/* Imagen */}
           <div className="w-20 h-20 relative shrink-0">
             <Image
-              src={item.product.img?.[0]?.url || "/placeholder.jpg"}
+            src={resolveStrapiMediaUrl(item.product.img) ?? "/placeholder.jpg"}
               alt={item.product.productName}
               fill
               className="object-cover rounded-md"

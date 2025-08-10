@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Buttones";
 import { Trash2 } from "lucide-react";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 const formatQuantity = (qty: number, unidad: string) => {
   const u = unidad?.trim().toLowerCase();
@@ -60,7 +61,7 @@ export default function CartPage() {
             className="bg-white/40 rounded-xl shadow-lg flex flex-col md:flex-row items-center gap-4 p-5 border border-[#E0E0E0] transition-transform hover:scale-[1.01]"
           >
             <Image
-              src={item.product.img?.[0]?.url || "/placeholder.jpg"}
+            src={resolveStrapiMediaUrl(item.product.img) ?? "/placeholder.jpg"}
               alt={item.product.productName}
               width={100}
               height={100}

@@ -8,6 +8,7 @@ import { ProductType } from "@/types/product";
 import { useCartStore } from "@/store/cart-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 interface Props {
   product: ProductType;
@@ -36,10 +37,8 @@ const FeaturedProductCard = ({ product }: Props) => {
     return `${qty}`;
   };
 
-  const imageUrl = product.img?.[0]?.url || "/placeholder.jpg";
-  const fullImageUrl = imageUrl.startsWith("/")
-    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${imageUrl}`
-    : imageUrl;
+  const fullImageUrl =
+    resolveStrapiMediaUrl(product.img) ?? "/placeholder.jpg";
 
   const handleAddToCart = async () => {
     setIsAdding(true);

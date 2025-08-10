@@ -1,27 +1,19 @@
-const MEDIA = process.env.NEXT_PUBLIC_MEDIA_URL || "";
+import { toMediaURL } from "@/utils/media";
 
-export function resolveStrapiMediaUrl(input: any): string | undefined {
+type MediaLike = { url: string };
+
+export function resolveStrapiMediaUrl(
+  input: number | MediaLike | MediaLike[] | null | undefined
+): string | undefined {
   if (!input) return undefined;
-
-  const base = MEDIA.replace(/\/$/, "");
 
   if (Array.isArray(input)) {
     return resolveStrapiMediaUrl(input[0]);
   }
 
-  if (typeof input === "object") {
-    if ("url" in input && typeof (input as any).url === "string") {
-      const url = (input as any).url as string;
-      return url.startsWith("http") ? url : base ? `${base}${url}` : url;
-    }
-  }
-
-  if (typeof input === "string") {
-    if (input.startsWith("http") || input.startsWith("data:")) {
-      return input;
-    }
-    const path = input.startsWith("/") ? input : `/${input}`;
-    return base ? `${base}${path}` : path;
+  if (typeof input === "object" && "url" in input && typeof input.url === "string") {
+    const url = toMediaURL(input.url);
+    return url || undefined;
   }
 
   return undefined;

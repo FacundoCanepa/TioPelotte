@@ -6,6 +6,7 @@ import { useGetProductByName } from "@/components/hooks/useGetProductByName";
 import SkeletonConsultarPedido from "@/components/ui/SkeletonConsultarPedido";
 import type { PedidoType } from "@/types/pedido";
 import type { ItemType } from "@/types/item";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 function EstadoBadge({ estado }: { estado: string }) {
   const color =
@@ -68,7 +69,7 @@ function ProductoItemCard({ item }: { item: ItemType }) {
     <div className="flex gap-5 bg-[#FFFDF8] rounded-2xl px-5 py-4 shadow-md hover:shadow-lg transition border border-[#f3e1c3]">
       <div className="w-28 h-28 md:w-32 md:h-32 relative rounded-xl overflow-hidden shrink-0">
         <Image
-          src={product.img?.[0]?.url || "/placeholder.jpg"}
+        src={resolveStrapiMediaUrl(product.img) ?? "/placeholder.jpg"}
           alt={product.productName}
           fill
           className="object-cover"

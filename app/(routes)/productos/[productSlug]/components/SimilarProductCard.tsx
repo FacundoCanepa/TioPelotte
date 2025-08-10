@@ -3,9 +3,10 @@
 import { ProductType } from "@/types/product";
 import Image from "next/image";
 import Link from "next/link";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 const SimilarProductCard = ({ product }: { product: ProductType }) => {
-  const img = product.img?.[0]?.url || "/placeholder.jpg";
+  const img = resolveStrapiMediaUrl(product.img) ?? "/placeholder.jpg";
 
   return (
     <div className="group bg-[#FFF4E8] border border-[#F0D6C0] rounded-2xl shadow-sm overflow-hidden transition hover:shadow-lg hover:scale-[1.02] flex flex-col h-full w-[250px] mx-auto relative">

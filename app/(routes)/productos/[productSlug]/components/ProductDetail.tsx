@@ -2,7 +2,7 @@
 
 
 import { useState } from "react";
-import { ProductType } from "@/types/product";
+import { ProductType, StrapiMedia } from "@/types/product";
 import ProductImageCarousel from "./ProductImageCarousel";
 import {
   ShoppingCart,
@@ -20,6 +20,7 @@ import { useCartStore } from "@/store/cart-store";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 interface Props {
   product: ProductType;
@@ -66,8 +67,19 @@ const ProductDetail = ({ product }: Props) => {
     });
   };
 
+const rawImages = Array.isArray(product.img_carousel)
+    ? product.img_carousel
+    : Array.isArray(product.img)
+    ? product.img
+    : [product.img_carousel, product.img].filter(Boolean);
 
-  const carouselImages = product?.img_carousel ?? product?.img ?? [];
+  const carouselImages = rawImages
+    .filter((m): m is StrapiMedia => typeof m === "object" && m !== null)
+    .map((m) => ({
+      id: m.id,
+      url: resolveStrapiMediaUrl(m) ?? "/placeholder.jpg",
+      alternativeText: m.alternativeText,
+    }));
 
   return (
     <section className="bg-[#FBE6D4] text-[#8B4513]">

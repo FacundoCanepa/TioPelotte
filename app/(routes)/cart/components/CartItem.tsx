@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 import { useCartStore } from "@/store/cart-store";
 import type { CartItem as CartItemType } from "@/store/cart-store";
 
@@ -34,10 +35,12 @@ export default function CartItem({ item }: Props) {
     }
   };
 
+  const imageUrl = resolveStrapiMediaUrl(item.product.img) ?? "/placeholder.jpg";
+
   return (
     <div className="bg-[#FFF4E3] rounded-xl p-4 flex flex-col md:flex-row items-center gap-4 shadow-sm">
       <Image
-        src={item.product.img?.[0]?.url || "/placeholder.jpg"}
+        src={imageUrl}
         alt={item.product.productName}
         width={100}
         height={100}

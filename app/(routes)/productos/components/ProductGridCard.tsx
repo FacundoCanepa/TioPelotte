@@ -8,6 +8,7 @@ import Button from "@/components/ui/Buttones";
 import { useCartStore } from "@/store/cart-store";
 import Image from "next/image";
 import { toast } from "sonner";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 interface Props {
   product: ProductType;
@@ -71,7 +72,7 @@ const formatQuantity = (qty: number) => {
             </span>
           )}
           <Image
-            src={product.img?.[0]?.url || "/placeholder.jpg"}
+            src={resolveStrapiMediaUrl(product.img) ?? "/placeholder.jpg"}
             alt={product.productName}
             width={300}
             height={300}

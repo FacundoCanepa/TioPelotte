@@ -13,8 +13,8 @@ export type ProductType = {
   descriptionCorta: string | null;
 
   // Medias provenientes de Strapi
-  img: StrapiMedia | StrapiMedia[] | number | null;
-  img_carousel?: (StrapiMedia | number)[] | null;
+  img: number | StrapiMedia | StrapiMedia[] | null;
+  img_carousel?: number | StrapiMedia | (StrapiMedia | number)[] | null;
 
   unidadMedida: string;
   taste: string;

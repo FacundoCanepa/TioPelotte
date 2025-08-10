@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2, AlertCircle } from "lucide-react";
+import { resolveStrapiMediaUrl } from "@/lib/media";
 
 type Props = {
   slug: string;
@@ -117,7 +118,7 @@ export default function RecipeDetail({ slug }: Props) {
               🍽 <strong>Porciones:</strong> {receta.porciones}
             </span>
           </div>
-        </div>
+              </div>
       </div>
 
       {receta.preparacion && (
@@ -142,34 +143,37 @@ export default function RecipeDetail({ slug }: Props) {
             Productos usados en esta receta
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {receta.products.map((product) => (
-              <Link
-                key={product.id}
-                href={`/productos/${product.slug}`}
-                className="group rounded-2xl shadow-xl transition duration-300 overflow-hidden bg-[#FFF4E8] border border-[#F0D6C0] hover:shadow-2xl"
-              >
-                {product.img[0]?.url && (
-                  <div className="relative h-44 w-full overflow-hidden">
-                    <Image
-                      src={product.img[0].url}
-                      alt={product.productName}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                )}
-                <div className="p-4 text-center">
-                  <p className="text-lg font-semibold text-[#8B4513] group-hover:text-[#D16A45] transition">
-                    {product.productName}
-                  </p>
-                  {product.price !== undefined && (
-                    <p className="text-sm text-[#5C3D2E] mt-1">
-                      ${product.price.toLocaleString("es-AR")}
-                    </p>
+            {receta.products.map((product) => {
+              const imgUrl = resolveStrapiMediaUrl(product.img);
+              return (
+                <Link
+                  key={product.id}
+                  href={`/productos/${product.slug}`}
+                  className="group rounded-2xl shadow-xl transition duration-300 overflow-hidden bg-[#FFF4E8] border border-[#F0D6C0] hover:shadow-2xl"
+                >
+                  {imgUrl && (
+                    <div className="relative h-44 w-full overflow-hidden">
+                      <Image
+                        src={imgUrl}
+                        alt={product.productName}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
                   )}
-                </div>
-              </Link>
-            ))}
+                  <div className="p-4 text-center">
+                    <p className="text-lg font-semibold text-[#8B4513] group-hover:text-[#D16A45] transition">
+                      {product.productName}
+                    </p>
+                    {product.price !== undefined && (
+                      <p className="text-sm text-[#5C3D2E] mt-1">
+                        ${product.price.toLocaleString("es-AR")}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
