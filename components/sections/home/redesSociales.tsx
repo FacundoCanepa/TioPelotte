@@ -25,7 +25,7 @@ const RedesSociales = () => {
           </a>
 
           <a
-            href="https://www.instagram.com/tuusuario"
+            href="https://www.instagram.com/tiopelotte/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
@@ -35,7 +35,7 @@ const RedesSociales = () => {
           </a>
 
           <a
-            href="https://www.facebook.com/tuusuario"
+            href="https://www.facebook.com/p/Pastas-Tio-Pelotte-100063991449642/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Facebook"
