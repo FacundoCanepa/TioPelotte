@@ -15,7 +15,8 @@ const RedesSociales = () => {
 
         <div className="flex justify-center gap-6 md:gap-8" role="navigation" aria-label="Redes sociales">
           <a
-            href="https://wa.me/5492211234567"
+
+            href="https://wa.me/542213076990?text=Hola,%20quiero%20hacerte%20una%20consulta"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="WhatsApp"

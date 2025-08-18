@@ -1,14 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Image from "next/image";
+import SkeletonCategory from "../../ui/SkeletonCategory";
+import { useGetCategory } from "@/components/hooks/useGetCategory";
+import { ResponseType } from "@/types/response";
+import type { Category } from "@/types/category";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SkeletonCategory from "../../ui/SkeletonCategory";
-import SectionHeader from "../../ui/SectionHeader";
-import { useGetCategory } from "@/components/hooks/useGetCategory";
-import type { Category } from "@/types/category";
-import { ResponseType } from "@/types/response";
+import Image from "next/image";
 
 const CategoryHome = () => {
   const { loading, result } = useGetCategory() as ResponseType;
@@ -28,57 +26,59 @@ const CategoryHome = () => {
   };
 
   return (
-    <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <SectionHeader
-        title="¿Qué te gustaría disfrutar hoy?"
-        subtitle="Descubrí nuestras especialidades frescas y artesanales."
-      />
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 className="text-center font-garamond text-[4vh] md:text-[6vh] sm:pb-1 italic tracking-wide">
+        ¿Qué te gustaría disfrutar hoy?
+      </h2>
+      <p className="text-center text-lg font-garamond italic text-stone-600 mb-2 border-b-2 border-dashed border-black/50 md:border-0">
+        Descubrí nuestras especialidades frescas y artesanales.
+      </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="flex overflow-x-auto rounded-xl h-[400px] lg:h-[400px]">
         {loading ? (
           <SkeletonCategory />
         ) : (
           result &&
           result.map((category: Category) => {
-            const isExpanded = expandedId === String(category.id);
+            const isExpandedMobile = expandedId === String(category.id);
 
             return (
-              <motion.div
+              <div
                 key={category.id}
-                layout
-                whileHover={{ scale: 1.02 }}
                 onClick={() => handleClick(String(category.id), category.slug)}
-                className="group relative h-56 w-full cursor-pointer overflow-hidden rounded-lg shadow-sm"
-                role="button"
-                aria-label={`Ver productos de ${category.categoryNames}`}
-                aria-expanded={isExpanded}
+                className={`
+                  group relative flex-shrink-0 cursor-pointer
+                  overflow-hidden 
+                  transition-all duration-500 ease-in-out
+                  ${isExpandedMobile ? "flex-[3]" : "flex-[1]"}
+                  lg:flex-[1] lg:hover:flex-[3]
+                  w-[280px] lg:w-auto
+                `}
               >
                 <Image
                   src={`${category.mainImage.url}`}
                   alt={category.categoryNames}
                   fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="absolute inset-0 object-cover scale-110 group-hover:scale-100 transition-transform duration-500"
                 />
-                <motion.div
-                  className="absolute inset-0 flex items-end justify-center bg-black/40 p-4 opacity-0 transition-opacity group-hover:opacity-100"
-                  animate={{ opacity: isExpanded ? 1 : 0 }}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10" />
+                <div
+                  className="
+                    absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20
+                    bg-white/10 text-white px-5 py-2 rounded-lg
+                    text-xl font-garamond italic tracking-wide shadow-md
+                    backdrop-blur-sm transition-all duration-500
+                    group-hover:text-2xl
+                  "
                 >
-                  <span className="text-white text-lg md:text-xl font-garamond italic tracking-wide">
-                    {category.categoryNames}
-                  </span>
-                </motion.div>
-                {!isExpanded && (
-                  <span className="absolute inset-x-0 bottom-4 pointer-events-none text-center text-white text-lg font-garamond italic drop-shadow-lg">
-                    {category.categoryNames}
-                  </span>
-                )}
-              </motion.div>
+                  {category.categoryNames}
+                </div>
+              </div>
             );
           })
         )}
       </div>
-    </section>
+    </div>
   );
 };
 
