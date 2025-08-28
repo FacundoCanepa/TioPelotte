@@ -11,7 +11,8 @@ export type ProductType = {
   slug: string;
   description: string;
   descriptionCorta: string | null;
-
+  updatedAt: string | null;
+  
   // Medias provenientes de Strapi
   img: number | StrapiMedia | StrapiMedia[] | null;
   img_carousel?: number | StrapiMedia | (StrapiMedia | number)[] | null;
