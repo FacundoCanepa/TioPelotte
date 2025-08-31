@@ -32,8 +32,10 @@ const FeaturedProductCard = ({ product }: Props) => {
 
   const formatQuantity = (qty: number) => {
     if (unidad === "kg") return qty >= 1 ? `${qty} Kg` : `${qty * 1000} gr`;
-    if (unidad === "unidad") return `${qty} Unidad`;
-    if (unidad === "planchas") return `${qty} Planchas`;
+    if (unidad === "unidad")
+      return `${qty} ${qty === 1 ? "Unidad" : "Unidades"}`;
+    if (unidad === "planchas")
+      return `${qty} ${qty === 1 ? "Plancha" : "Planchas"}`;
     return `${qty}`;
   };
 

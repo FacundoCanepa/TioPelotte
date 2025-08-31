@@ -168,8 +168,26 @@ export async function GET(req: NextRequest) {
     }
 
     const urlObj = new URL(req.url);
-    const sp = urlObj.searchParams;
-    if (!sp.has("populate")) sp.set("populate", "*");
+    const spIn = urlObj.searchParams;
+
+    const q = (spIn.get("q") || "").trim();
+    const page = spIn.get("page") || "1";
+    const pageSize = spIn.get("pageSize") || "10";
+
+    const sp = new URLSearchParams();
+    sp.set("pagination[page]", page);
+    sp.set("pagination[pageSize]", pageSize);
+    // Campos mínimos para autocompletar
+    sp.set("fields[0]", "documentId");
+    sp.set("fields[1]", "productName");
+    sp.set("fields[2]", "slug");
+    // populate no es necesario para autocomplete, pero no hace daño
+    if (!spIn.has("populate")) sp.set("populate", "*");
+    // Filtro de búsqueda por nombre/slug
+    if (q) {
+      sp.set("filters[$or][0][productName][$containsi]", q);
+      sp.set("filters[$or][1][slug][$containsi]", q);
+    }
 
     const url = `${base}/api/products?${sp.toString()}`;
     console.log("[API][products][GET] URL:", url);
