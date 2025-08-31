@@ -15,12 +15,21 @@ export default function BestSellingProducts({ pedidos }: Props) {
     const conteo: Record<string, { cantidad: number; monto: number }> = {};
 
     pedidos.forEach((pedido) => {
-      pedido.items?.forEach((item) => {
-        if (!item.product_name) return;
-        const nombre = item.product_name;
+      const raw: any = (pedido as any).items;
+      const items: any[] = Array.isArray(raw)
+        ? raw
+        : (typeof raw === 'string'
+            ? (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; } })()
+            : []);
+
+      items.forEach((item) => {
+        const nombre: string | undefined = item?.product_name || item?.productName;
+        if (!nombre) return;
+        const qty = Number(item?.quantity ?? item?.qty ?? 0) || 0;
+        const unit = Number(item?.unit_price ?? item?.price ?? 0) || 0;
         if (!conteo[nombre]) conteo[nombre] = { cantidad: 0, monto: 0 };
-        conteo[nombre].cantidad += item.quantity;
-        conteo[nombre].monto += item.quantity * (item.unit_price ?? 0);
+        conteo[nombre].cantidad += qty;
+        conteo[nombre].monto += qty * unit;
       });
     });
 
