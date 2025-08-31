@@ -102,9 +102,10 @@ export default function PedidosTable({ pedidos }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const copiar = (texto: string, label = "Copiado") => {
-    if (!texto) return;
-    navigator.clipboard.writeText(texto);
+  const copiar = (texto: string | null | undefined, label = "Copiado") => {
+    const s = (texto ?? "").toString();
+    if (!s) return;
+    navigator.clipboard.writeText(s);
     toast.success(label);
   };
 
