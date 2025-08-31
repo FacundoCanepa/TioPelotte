@@ -96,6 +96,22 @@ export default function PedidoResultado() {
 
   if (!pedido) return null;
 
+  // Normaliza items: puede venir como array, string JSON, null o undefined
+  const items: unknown[] = (() => {
+    const raw: any = (pedido as any).items;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw as unknown[];
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? (parsed as unknown[]) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  })();
+
   return (
     <div className="mt-10 space-y-8">
       <div className="flex items-center justify-between">
@@ -110,8 +126,8 @@ export default function PedidoResultado() {
           🛒 Productos incluidos:
         </h3>
         <div className="space-y-5">
-          {pedido.items
-            .filter((item) => item.product_name || item.productName)
+          {items
+            .filter((item: any) => item?.product_name || item?.productName)
             .map((item, index: number) => (
               <ProductoItemCard key={index} item={item as ItemType} />
             ))}
