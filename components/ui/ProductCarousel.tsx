@@ -26,12 +26,23 @@ const ProductCarousel = ({ products }: Props) => {
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
   const [showButtons, setShowButtons] = useState(false);
+  const [canScroll, setCanScroll] = useState(false);
 
   useEffect(() => {
-    if (products.length > 4) {
-      setShowButtons(true);
-    }
-  }, [products]);
+    if (!emblaApi) return;
+    const update = () => {
+      const can = emblaApi.canScrollNext() || emblaApi.canScrollPrev();
+      setCanScroll(can);
+      setShowButtons(can);
+    };
+    update();
+    emblaApi.on("reInit", update);
+    emblaApi.on("select", update);
+    return () => {
+      emblaApi.off("reInit", update);
+      emblaApi.off("select", update);
+    };
+  }, [emblaApi, products]);
 
   return (
     <div className="relative px-2 sm:px-4 md:px-8">
@@ -61,7 +72,7 @@ const ProductCarousel = ({ products }: Props) => {
           <button
             onClick={scrollPrev}
             aria-label="Anterior"
-            className="cursor-pointer hidden lg:flex absolute left-[calc(-4rem)] top-1/2 -translate-y-1/2 z-30 bg-white p-2 rounded-full shadow hover:bg-[#6B8E23] hover:text-white transition"
+            className="cursor-pointer hidden xl:flex absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white p-2 rounded-full shadow hover:bg-[#6B8E23] hover:text-white transition"
           >
             <ChevronLeft size={24} />
           </button>
@@ -69,7 +80,7 @@ const ProductCarousel = ({ products }: Props) => {
           <button
             onClick={scrollNext}
             aria-label="Siguiente"
-            className="cursor-pointer hidden lg:flex absolute right-[calc(-4rem)] top-1/2 -translate-y-1/2 z-30 bg-white p-2 rounded-full shadow hover:bg-[#6B8E23] hover:text-white transition"
+            className="cursor-pointer hidden xl:flex absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white p-2 rounded-full shadow hover:bg-[#6B8E23] hover:text-white transition"
           >
             <ChevronRight size={24} />
           </button>

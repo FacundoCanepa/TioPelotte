@@ -15,11 +15,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className={`${islandMoments.variable} ${ebGaramond.variable} antialiased`}>
+    <html lang="es" className="h-full">
+      <body className={`${islandMoments.variable} ${ebGaramond.variable} antialiased min-h-dvh bg-[#FBE6D4] flex flex-col`}>
         <UserSessionLoader />
         <Navbar />
-        {children}
+        <main className="flex-1">{children}</main>
         <ClientLayoutWrapper />
 
         <Toaster

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCartStore } from "@/store/cart-store";
 import { toast } from "sonner";
@@ -11,9 +11,13 @@ export function useConfirmPedido() {
   const clearCart = useCartStore((state) => state.clearCart);
 
   const [estado, setEstado] = useState("Confirmando tu pedido...");
+  const shown = useRef(false);
 
   useEffect(() => {
-    toast.success("¡Tu pedido fue realizado con éxito!");
+    if (!shown.current) {
+      shown.current = true;
+      toast.success("¡Tu pedido fue realizado con éxito!");
+    }
 
     const crearPedido = async () => {
       if (!payment_id) return;

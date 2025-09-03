@@ -52,6 +52,16 @@ export default function CheckoutPage() {
   const [telefonoError, setTelefonoError] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  // Bloquear scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (showToast) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showToast]);
+
   useEffect(() => {
     if (!user) return;
     setNombre(user.username ?? "");
@@ -146,25 +156,29 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[#FBE6D4] py-12 px-4 md:px-16 space-y-10 relative">
       {showToast && (
-        <div className="fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black/10">
-          <div className="bg-white text-center p-6 rounded-xl shadow-xl space-y-4 z-50">
-            <h2 className="text-lg font-semibold text-[#5A3E1B]">¿Querés confirmar tu pedido para retirar en el local?</h2>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleConfirmRetiro}
-                className="bg-[#2ecc71] text-white px-4 py-2 rounded-md"
-              >
-                Confirmar
-              </button>
-              <button
-                onClick={() => setShowToast(false)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
-              >
-                Seguir comprando
-              </button>
+        <>
+          {/* Overlay a pantalla completa con blur */}
+          <div className="fixed inset-0 z-50 h-dvh w-full bg-black/30 backdrop-blur-sm" />
+          <div className="fixed inset-0 z-50 grid place-items-center p-4">
+            <div className="bg-white text-center p-6 rounded-xl shadow-xl space-y-4">
+              <h2 className="text-lg font-semibold text-[#5A3E1B]">¿Querés confirmar tu pedido para retirar en el local?</h2>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={handleConfirmRetiro}
+                  className="bg-[#2ecc71] text-white px-4 py-2 rounded-md"
+                >
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => setShowToast(false)}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
+                >
+                  Seguir comprando
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+            </div>
+        </>
       )}
 
       <h1 className="text-4xl font-garamond text-[#5A3E1B] text-center mb-4">

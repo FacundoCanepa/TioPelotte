@@ -84,11 +84,13 @@ const CaroseText = () => {
                     priority={id === 1}
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t " />
-                  <div className="absolute inset-0 bg-black/20 mix-blend-multiply" />
-                  <div className="relative z-10 h-full w-full flex flex-col items-center justify-center text-center px-4 text-[#4B2E2E]">
+                  {/* Overlay gradiente para legibilidad */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/25 to-transparent md:from-black/35" />
+                  </div>
+                  <div className="relative z-10 h-full w-full flex flex-col items-center justify-center text-center px-4">
                     <motion.h2
-                      className="text-3xl md:text-5xl font-garamond italic tracking-wide mb-4"
+                      className="text-2xl sm:text-3xl md:text-5xl leading-tight sm:leading-tight font-garamond italic tracking-wide mb-2 text-[#FBE6D4] drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: 0.2 }}
@@ -96,7 +98,7 @@ const CaroseText = () => {
                       {title}
                     </motion.h2>
                     <motion.p
-                      className="text-base md:text-xl font-garamond italic mb-4"
+                      className="relative z-10 mt-2 max-w-xl text-sm md:text-base font-garamond italic text-white/90"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: 0.4 }}
@@ -104,13 +106,14 @@ const CaroseText = () => {
                       {description}
                     </motion.p>
                     <motion.div
+                      className="relative z-10 mt-4 pb-6 sm:pb-8 pointer-events-auto"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.4, delay: 0.6 }}
                     >
                       <Button
                         onClick={() => router.push(href)}
-                        className="bg-[#6B8E23] text-white font-semibold tracking-wide mt-4 hover:bg-[#557a1b] transition-colors"
+                        className="bg-[#6B8E23] text-white font-semibold tracking-wide hover:bg-[#557a1b] transition-colors"
                       >
                         {buttonLabel}
                       </Button>

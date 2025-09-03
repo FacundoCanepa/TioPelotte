@@ -63,9 +63,9 @@ const formatQuantity = (qty: number) => {
       : "";
 
   return (
-    <Card className="bg-[#FFF4E3] border-none rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 h-full">
-      <CardContent className="flex flex-col justify-between h-full p-4">
-        <div className="relative overflow-hidden rounded-xl h-[21rem] md:h-48 w-full">
+    <Card className="bg-[#FFF4E3] border-none rounded-2xl shadow-sm overflow-visible hover:shadow-md transition-all duration-300 flex flex-col h-auto md:h-auto">
+      <CardContent className="flex flex-col flex-1 p-4 gap-3">
+        <div className="relative rounded-xl aspect-[4/3] w-full overflow-hidden">
           {product.isOffer && (
             <span className="absolute top-2 left-2 bg-[#FFD966] text-[#8B4513] text-[11px] font-bold px-2 py-1 rounded-full shadow z-10">
               OFERTA
@@ -74,13 +74,13 @@ const formatQuantity = (qty: number) => {
           <Image
             src={resolveStrapiMediaUrl(product.img) ?? "/placeholder.jpg"}
             alt={product.productName}
-            width={300}
-            height={300}
-            className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500"
+            fill
+            className="object-cover object-center hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
           />
         </div>
 
-        <div className="flex flex-col flex-grow justify-between gap-2 mt-4">
+        <div className="flex flex-col flex-1 gap-2 mt-4">
           <div className="flex flex-col gap-1">
             <h3 className="line-clamp-1 text-lg font-garamond italic text-[#8B4513]">
               {product.productName}
@@ -96,38 +96,46 @@ const formatQuantity = (qty: number) => {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 mt-2">
-            <button
-              onClick={decrement}
-              aria-label="Restar cantidad"
-              className="cursor-pointer min-w-[2rem] px-2 py-1 rounded bg-[#FFD966] text-[#8B4513] font-bold hover:bg-[#f5c741]"
-            >
-              –
-            </button>
-            <span className="text-sm font-medium w-20 text-center">
-              {formatQuantity(quantity)}
-            </span>
-            <button
-              onClick={increment}
-              aria-label="Sumar cantidad"
-              className="cursor-pointer min-w-[2rem] px-2 py-1 rounded bg-[#FFD966] text-[#8B4513] font-bold hover:bg-[#f5c741]"
-            >
-              +
-            </button>
-          </div>
+          <div className="mt-auto">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 md:gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={decrement}
+                  aria-label="Restar cantidad"
+                  className="cursor-pointer min-w-[2rem] px-2 py-1 rounded bg-[#FFD966] text-[#8B4513] font-bold hover:bg-[#f5c741]"
+                >
+                  –
+                </button>
+                <span className="text-sm font-medium w-20 text-center">
+                  {formatQuantity(quantity)}
+                </span>
+                <button
+                  onClick={increment}
+                  aria-label="Sumar cantidad"
+                  className="cursor-pointer min-w-[2rem] px-2 py-1 rounded bg-[#FFD966] text-[#8B4513] font-bold hover:bg-[#f5c741]"
+                >
+                  +
+                </button>
+              </div>
 
-          <Button
+              <span className="text-xs text-stone-500 text-center">
+                {unidad || ""}
+              </span>
+
+              <Button
                 onClick={() => {
-              addToCart(product, quantity);
-              toast.success(`${product.productName} agregado al carrito`, {
-                duration: 2500,
-                icon: "🛒",
-              });
-            }}
-            className="bg-[#FFD966] text-[#8B4513] hover:bg-[#6B8E23] mt-2"
-          >
-            Añadir al carrito
-          </Button>
+                  addToCart(product, quantity);
+                  toast.success(`${product.productName} agregado al carrito`, {
+                    duration: 2500,
+                    icon: "🛒",
+                  });
+                }}
+                className="bg-[#FFD966] text-[#8B4513] hover:bg-[#6B8E23]"
+              >
+                Añadir
+              </Button>
+            </div>
+          </div>
 
           <Button
             onClick={() => router.push(`/productos/${product.slug}`)}
