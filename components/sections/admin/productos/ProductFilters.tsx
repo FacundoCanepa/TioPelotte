@@ -37,21 +37,21 @@ export default function ProductFilters({
       <SearchInput value={search} setValue={setSearch} />
 
       <select value={filterOffer} onChange={(e) => setFilterOffer(e.target.value)} className="border p-2 rounded">
-        <option value="all">Todas</option>
-        <option value="offer">En oferta</option>
-        <option value="normal">Sin oferta</option>
+        <option key="offer-all" value="all">Todas</option>
+        <option key="offer-yes" value="offer">En oferta</option>
+        <option key="offer-no" value="normal">Sin oferta</option>
       </select>
 
       <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} className="border p-2 rounded">
-        <option value="all">Todos</option>
-        <option value="active">Activos</option>
-        <option value="inactive">Inactivos</option>
+        <option key="active-all" value="all">Todos</option>
+        <option key="active-yes" value="active">Activos</option>
+        <option key="active-no" value="inactive">Inactivos</option>
       </select>
 
       <select value={filterUnidad} onChange={(e) => setFilterUnidad(e.target.value)} className="border p-2 rounded">
-        <option value="all">Unidad</option>
-        {unidades.map((u) => (
-          <option key={u} value={u}>
+        <option key="unidad-all" value="all">Unidad</option>
+        {Array.from(new Set((unidades || []).filter(Boolean))).map((u) => (
+          <option key={`unidad-${u}`} value={u}>
             {u}
           </option>
         ))}

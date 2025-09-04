@@ -178,9 +178,6 @@ export async function GET(req: NextRequest) {
     sp.set("pagination[page]", page);
     sp.set("pagination[pageSize]", pageSize);
     // Campos mínimos para autocompletar
-    sp.set("fields[0]", "documentId");
-    sp.set("fields[1]", "productName");
-    sp.set("fields[2]", "slug");
     // populate no es necesario para autocomplete, pero no hace daño
     if (!spIn.has("populate")) sp.set("populate", "*");
     // Filtro de búsqueda por nombre/slug

@@ -52,6 +52,8 @@ export default function ProductosSection() {
     categories,
     ingredientes,
     loading,
+    error,
+    reload,
     createProduct,
     updateProduct,
     removeProduct,
@@ -204,8 +206,22 @@ export default function ProductosSection() {
 
   if (loading) {
     return (
-      <div className="w-full flex justify-center py-10">
-        <Loader2 className="h-6 w-6 animate-spin text-[#8B4513]" />
+      <div aria-busy="true" className="space-y-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-10 rounded-md bg-black/5 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div role="alert" aria-live="assertive" className="rounded-2xl border p-4 bg-white/70 max-w-xl">
+        <p className="font-semibold">Ocurrió un problema</p>
+        <p className="opacity-80">No pudimos cargar la información.</p>
+        <button onClick={reload} className="mt-3 inline-flex items-center gap-2 rounded-xl border px-3 py-2 cursor-pointer hover:opacity-90">
+          Reintentar
+        </button>
       </div>
     );
   }
@@ -260,6 +276,13 @@ export default function ProductosSection() {
         orderBy={orderBy}
         setOrderBy={setOrderBy}
       />
+
+      {sorted.length === 0 && (
+        <div className="rounded-2xl border p-6 bg-white/70 text-center">
+          <p className="font-semibold">Aún no hay registros</p>
+          <button onClick={startNew} className="mt-3 rounded-xl border px-4 py-2 cursor-pointer hover:opacity-90">Crear nuevo</button>
+        </div>
+      )}
     </section>
   );
 }
