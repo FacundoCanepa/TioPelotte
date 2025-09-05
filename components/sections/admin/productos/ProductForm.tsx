@@ -28,7 +28,7 @@ export default function ProductForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const sabores = useMemo(
-    () => ["fideos", "sorrentinos", "ravioles", "especiales", "��oquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
+    () => ["fideos", "sorrentinos", "ravioles", "especiales", "ñoquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
     []
   );
   const unidades = useMemo(() => ["kg", "planchas", "unidad"], []);
@@ -109,7 +109,7 @@ export default function ProductForm({
         </div>
 
         <div className="space-y-1" data-field="descriptionCorta">
-          <label className="text-sm font-semibold text-[#5A3E1B]">Descripci��n corta <span className="text-red-600">*</span></label>
+          <label className="text-sm font-semibold text-[#5A3E1B]">Descripcion corta <span className="text-red-600">*</span></label>
           <input
             type="text"
             value={form.descriptionCorta}
@@ -166,7 +166,7 @@ export default function ProductForm({
         </div>
 
         <div className="space-y-1" data-field="category">
-          <label className="text-sm font-semibold text-[#5A3E1B]">Categor��a <span className="text-red-600">*</span></label>
+          <label className="text-sm font-semibold text-[#5A3E1B]">Categoria <span className="text-red-600">*</span></label>
           <select
             value={form.category || ""}
             onChange={(e) => {
@@ -177,7 +177,7 @@ export default function ProductForm({
               errors.category ? "border-red-400" : "border-[#e6cdb0]"
             }`}
           >
-            <option value="" disabled>Seleccionar categor��a</option>
+            <option value="" disabled>Seleccionar categoria</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.documentId}>
                 {cat.categoryNames}
