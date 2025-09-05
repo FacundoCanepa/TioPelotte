@@ -40,12 +40,12 @@ export default function ProductForm({
     const isNumber = (v: any) => typeof v === "number" && !Number.isNaN(v);
 
     if (isEmpty(values.productName)) e.productName = "El nombre es obligatorio";
-    if (isEmpty(values.descriptionCorta)) e.descriptionCorta = "La descripci��n corta es obligatoria";
+    if (isEmpty(values.descriptionCorta)) e.descriptionCorta = "La descripcion corta es obligatoria";
     if (isEmpty(values.taste)) e.taste = "El sabor es obligatorio";
     if (isEmpty(values.unidadMedida)) e.unidadMedida = "La unidad es obligatoria";
-    if (isEmpty(values.category)) e.category = "La categor��a es obligatoria";
+    if (isEmpty(values.category)) e.category = "La categoria es obligatoria";
 
-    if (isEmpty(values.description)) e.description = "La descripci��n es obligatoria";
+    if (isEmpty(values.description)) e.description = "La descripcion es obligatoria";
 
     if (!isNumber(values.price) || values.price <= 0) e.price = "El precio debe ser un nǧmero mayor a 0";
     if (!isNumber(values.stock) || values.stock < 0) e.stock = "El stock debe ser un nǧmero mayor o igual a 0";
