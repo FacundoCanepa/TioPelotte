@@ -28,7 +28,7 @@ export default function ProductForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const sabores = useMemo(
-    () => ["fideos", "sorrentinos", "ravioles", "especiales", "ñoquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
+    () => ["fideos", "sorrentinos", "ravioles", "especiales", "��oquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
     []
   );
   const unidades = useMemo(() => ["kg", "planchas", "unidad"], []);
@@ -40,23 +40,27 @@ export default function ProductForm({
     const isNumber = (v: any) => typeof v === "number" && !Number.isNaN(v);
 
     if (isEmpty(values.productName)) e.productName = "El nombre es obligatorio";
-    if (isEmpty(values.descriptionCorta)) e.descriptionCorta = "La descripción corta es obligatoria";
+    if (isEmpty(values.descriptionCorta)) e.descriptionCorta = "La descripci��n corta es obligatoria";
     if (isEmpty(values.taste)) e.taste = "El sabor es obligatorio";
     if (isEmpty(values.unidadMedida)) e.unidadMedida = "La unidad es obligatoria";
-    if (isEmpty(values.category)) e.category = "La categoría es obligatoria";
+    if (isEmpty(values.category)) e.category = "La categor��a es obligatoria";
 
-    if (isEmpty(values.description)) e.description = "La descripción es obligatoria";
+    if (isEmpty(values.description)) e.description = "La descripci��n es obligatoria";
 
-    if (!isNumber(values.price) || values.price <= 0) e.price = "El precio debe ser un número mayor a 0";
-    if (!isNumber(values.stock) || values.stock < 0) e.stock = "El stock debe ser un número mayor o igual a 0";
+    if (!isNumber(values.price) || values.price <= 0) e.price = "El precio debe ser un nǧmero mayor a 0";
+    if (!isNumber(values.stock) || values.stock < 0) e.stock = "El stock debe ser un nǧmero mayor o igual a 0";
 
     if (isEmpty(values.porciones)) e.porciones = "Las porciones son obligatorias";
     if (isEmpty(values.tiempoEstimado)) e.tiempoEstimado = "El tiempo estimado es obligatorio";
 
-    // imagen principal obligatoria (ids numéricos o un único id)
+    // imagen principal obligatoria (acepta número, array o objeto { id })
     const hasMainImage =
       (typeof values.img === "number" && values.img > 0) ||
-      (Array.isArray(values.img) && values.img.length > 0);
+      (Array.isArray(values.img) && values.img.length > 0) ||
+      (values.img &&
+        typeof values.img === "object" &&
+        typeof (values.img as any).id === "number" &&
+        (values.img as any).id > 0);
     if (!hasMainImage) e.img = "La imagen principal es obligatoria";
 
     return e;
@@ -105,7 +109,7 @@ export default function ProductForm({
         </div>
 
         <div className="space-y-1" data-field="descriptionCorta">
-          <label className="text-sm font-semibold text-[#5A3E1B]">Descripción corta <span className="text-red-600">*</span></label>
+          <label className="text-sm font-semibold text-[#5A3E1B]">Descripci��n corta <span className="text-red-600">*</span></label>
           <input
             type="text"
             value={form.descriptionCorta}
@@ -162,7 +166,7 @@ export default function ProductForm({
         </div>
 
         <div className="space-y-1" data-field="category">
-          <label className="text-sm font-semibold text-[#5A3E1B]">Categoría <span className="text-red-600">*</span></label>
+          <label className="text-sm font-semibold text-[#5A3E1B]">Categor��a <span className="text-red-600">*</span></label>
           <select
             value={form.category || ""}
             onChange={(e) => {
@@ -173,7 +177,7 @@ export default function ProductForm({
               errors.category ? "border-red-400" : "border-[#e6cdb0]"
             }`}
           >
-            <option value="" disabled>Seleccionar categoría</option>
+            <option value="" disabled>Seleccionar categor��a</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.documentId}>
                 {cat.categoryNames}
@@ -185,7 +189,7 @@ export default function ProductForm({
       </div>
 
       <div className="space-y-1" data-field="slug">
-        <label className="text-sm font-semibold text-[#5A3E1B]">Slug (automático)</label>
+        <label className="text-sm font-semibold text-[#5A3E1B]">Slug (automǭtico)</label>
         <input
           type="text"
           value={form.slug}
@@ -195,7 +199,7 @@ export default function ProductForm({
       </div>
 
       <div className="space-y-1" data-field="description">
-        <label className="text-sm font-semibold text-[#5A3E1B]">Descripción completa <span className="text-red-600">*</span></label>
+        <label className="text-sm font-semibold text-[#5A3E1B]">Descripci��n completa <span className="text-red-600">*</span></label>
         <textarea
           value={form.description}
           onChange={(e) => {
@@ -205,7 +209,7 @@ export default function ProductForm({
           className={`w-full rounded-md border px-3 py-2 text-sm text-[#5A3E1B] h-24 bg-[#fff7ee] ${
             errors.description ? "border-red-400" : "border-[#e6cdb0]"
           }`}
-          placeholder="Detalle del producto, elaboración, etc."
+          placeholder="Detalle del producto, elaboraci��n, etc."
         />
         {errorText("description")}
       </div>
@@ -312,7 +316,7 @@ export default function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#5A3E1B]">Carrusel de imágenes</label>
+          <label className="text-sm font-semibold text-[#5A3E1B]">Carrusel de imǭgenes</label>
           <UploadCarouselGallery
             values={form.img_carousel}
             previews={form.img_carousel_preview}
@@ -351,8 +355,8 @@ export default function ProductForm({
         <button
           onClick={handleSave}
           className="mt-6 w-full bg-[#8B4513] text-white px-6 py-3 rounded-md hover:bg-[#6e3a1c] transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={Object.keys(validate(form)).length > 0 || uploading}
-          title={Object.keys(validate(form)).length > 0 ? "Completá los campos obligatorios" : undefined}
+          disabled={uploading}
+          title={undefined}
         >
           Guardar producto
         </button>
@@ -360,3 +364,4 @@ export default function ProductForm({
     </div>
   );
 }
+
