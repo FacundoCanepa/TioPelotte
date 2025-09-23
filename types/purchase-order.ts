@@ -1,4 +1,4 @@
-import { Ingredient } from "./ingredient";
+import { IngredientType } from "./ingredient";
 import { Line } from "./line";
 
 export type PurchaseOrder = {
@@ -11,6 +11,6 @@ export type PurchaseOrder = {
   expectedAt: string;
   receivedAt: string;
   Line: Line[];
-  Ingredientes: Ingredient[];
+  Ingredientes: IngredientType[];
   city: number;
 };

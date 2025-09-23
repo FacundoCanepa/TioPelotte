@@ -1,10 +1,10 @@
-import { Product } from "./product";
-import { Ingredient } from "./ingredient";
+import { ProductType } from "./product";
+import { IngredientType } from "./ingredient";
 
 export type StockMovement = {
   id: number;
-  product: Product;
-  ingredientas: Ingredient[];
+  product: ProductType;
+  ingredientas: IngredientType[];
   quantity: number;
   unit: string;
   type: string;

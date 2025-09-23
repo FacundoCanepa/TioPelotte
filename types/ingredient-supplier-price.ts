@@ -1,9 +1,9 @@
-import { Ingredient } from "./ingredient";
+import { IngredientType } from "./ingredient";
 import { Supplier } from "./supplier";
 
 export type IngredientSupplierPrice = {
   id: number;
-  ingrediente: Ingredient;
+  ingrediente: IngredientType;
   supplier: Supplier;
   unitPrice: number;
   currency: string;

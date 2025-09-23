@@ -1,8 +1,8 @@
-import { Ingredient } from "./ingredient";
+import { IngredientType } from "./ingredient";
 
 export type Line = {
   id: number;
-  Ingredientes: Ingredient[];
+  Ingredientes: IngredientType[];
   qty: number;
   unit: string;
   unitPrice: number;
