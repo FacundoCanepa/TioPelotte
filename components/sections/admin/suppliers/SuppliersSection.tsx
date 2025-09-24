@@ -14,7 +14,7 @@ export function SuppliersSection() {
       <SearchBar q={q} placeholder="Buscar por nombre" />
       <div className="mt-4">
         {isLoading && <p>Cargando proveedores...</p>}
-        {isError && <p>Error al cargar los proveedores: {error.message}</p>}
+        {isError && <p>Error al cargar los proveedores: {error?.message || 'Ocurrió un error'}</p>}
         {data && (
           <>
             <SupplierTable suppliers={data.items} />
