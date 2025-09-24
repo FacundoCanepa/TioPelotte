@@ -1,5 +1,7 @@
 import { IngredientType } from "@/types/ingredient";
 import { SupplierType } from "@/types/supplier";
+import { IngredientSupplierPrice } from "@/types/ingredient-supplier-price";
+import { Category } from "@/types/categoria_ingrediente";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -128,6 +130,50 @@ export function normalizeManyRelation(value: unknown): unknown {
   return undefined;
 }
 
+function normalizeEntity<T extends UnknownRecord>(entry: unknown): T | null {
+  if (!isRecord(entry)) return null;
+  const entity = isRecord(entry.data) ? (entry.data as UnknownRecord) : entry;
+  if (!isRecord(entity)) return null;
+  return entity as T;
+}
+
+export function mapCategoryFromStrapi(node: unknown): Category | undefined {
+  const entry = normalizeEntity(node);
+  if (!entry) return undefined;
+  const attributes = isRecord(entry.attributes) ? entry.attributes : entry;
+
+  const idValue = "id" in entry ? entry.id : attributes.id;
+  const id = normalizeNumber(idValue);
+
+  const docSource = attributes.documentId ?? entry.documentId;
+  const documentId = typeof docSource === "string" && docSource.trim() !== ""
+    ? docSource.trim()
+    : id
+    ? String(id)
+    : "";
+
+  const nombre = typeof attributes.nombre === "string"
+    ? attributes.nombre
+    : typeof attributes.name === "string"
+    ? attributes.name
+    : "";
+
+  const description = typeof attributes.description === "string"
+    ? attributes.description
+    : typeof attributes.descripcion === "string"
+    ? attributes.descripcion
+    : undefined;
+
+  return {
+    id,
+    documentId,
+    nombre,
+    description,
+    ingredientes: [],
+    ingredient_supplier_prices: [],
+  };
+}
+
 export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
   if (!isRecord(entry)) return null;
   const attributes = isRecord(entry.attributes) ? entry.attributes : entry;
@@ -161,7 +207,10 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     ? attributes.stock_updated_at
     : null;
 
-  return {
+    const rawCategory = attributes.categoria_ingrediente ?? entry.categoria_ingrediente;
+    const categoria_ingrediente = mapCategoryFromStrapi(rawCategory);
+  
+    const ingredient: IngredientType = {
     id,
     documentId,
     ingredienteName,
@@ -169,10 +218,12 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     unidadMedida,
     precio: normalizeNumber(attributes.precio ?? attributes.price),
     stockUpdatedAt,
+    categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category)
   };
+  return ingredient;
 }
 
-export function mapSupplierFromStrapi(entry: unknown): SupplierType | null {
+function mapSupplierEntity(entry: unknown, options: { includePrices: boolean }): SupplierType | null {
   if (!isRecord(entry)) return null;
   const attributes = isRecord(entry.attributes) ? entry.attributes : entry;
 
@@ -201,7 +252,7 @@ export function mapSupplierFromStrapi(entry: unknown): SupplierType | null {
   const activeValue = attributes.active ?? entry.active;
   const active = typeof activeValue === "boolean" ? activeValue : null;
 
-  return {
+  const supplierBase: SupplierType = {
     id,
     documentId,
     name: typeof attributes.name === "string" ? attributes.name : "",
@@ -210,6 +261,75 @@ export function mapSupplierFromStrapi(entry: unknown): SupplierType | null {
     ingredientes,
     ingredient_supplier_prices: [],
   };
+  const supplier: SupplierType = { ...supplierBase };
+
+  const rawPrices = extractRelationArray(attributes.ingredient_supplier_prices ?? entry.ingredient_supplier_prices);
+  const ingredient_supplier_prices = options.includePrices
+    ? rawPrices
+        .map((item) => mapPriceInternal(item, { includeSupplier: false }))
+        .filter((item): item is IngredientSupplierPrice => Boolean(item))
+        .map((price) => ({ ...price, supplier }))
+    : [];
+
+  supplier.ingredient_supplier_prices = ingredient_supplier_prices;
+
+  return supplier;
+}
+
+export function mapSupplierFromStrapi(entry: unknown): SupplierType | null {
+  return mapSupplierEntity(entry, { includePrices: true });
+}
+
+function mapSupplierForPrice(entry: unknown): SupplierType | null {
+  return mapSupplierEntity(entry, { includePrices: false });
+}
+
+function mapPriceInternal(
+  entry: unknown,
+  options: { includeSupplier: boolean }
+): IngredientSupplierPrice | null {
+  const normalized = normalizeEntity(entry);
+  if (!normalized) return null;
+  const attributes = isRecord(normalized.attributes) ? normalized.attributes : normalized;
+
+  const idValue = "id" in normalized ? normalized.id : attributes.id;
+  const id = normalizeNumber(idValue);
+
+  const ingredientNode = attributes.ingrediente ?? normalized.ingrediente ?? attributes.ingredient ?? normalized.ingredient;
+  const ingrediente = mapIngredientFromStrapi(ingredientNode);
+
+  const supplierNode = attributes.supplier ?? normalized.supplier;
+  const supplier = options.includeSupplier ? mapSupplierForPrice(supplierNode) : null;
+
+  const categoriaNode = attributes.categoria_ingrediente ?? normalized.categoria_ingrediente;
+  const categoria_ingrediente = mapCategoryFromStrapi(categoriaNode);
+
+  if (!ingrediente) return null;
+
+  const base: IngredientSupplierPrice = {
+    id,
+    ingrediente,
+    supplier: supplier ?? {
+      id: 0,
+      documentId: "",
+      name: "",
+      phone: null,
+      active: null,
+      ingredientes: [],
+      ingredient_supplier_prices: [],
+    },
+    unitPrice: normalizeNumber(attributes.unitPrice ?? attributes.price),
+    currency: typeof attributes.currency === "string" ? attributes.currency : "",
+    unit: typeof attributes.unit === "string" ? attributes.unit : "",
+    minOrderQty: normalizeNumber(attributes.minOrderQty ?? attributes.min_order_qty),
+    validFrom: typeof attributes.validFrom === "string" ? attributes.validFrom : "",
+    categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category),
+  };
+  return categoria_ingrediente ? { ...base, categoria_ingrediente } : base;
+}
+
+export function mapPriceFromStrapi(entry: unknown): IngredientSupplierPrice | null {
+  return mapPriceInternal(entry, { includeSupplier: true });
 }
 
 export async function fetchActiveSupplierCount(): Promise<number> {

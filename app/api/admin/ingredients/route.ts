@@ -1,5 +1,5 @@
-
 import { NextRequest, NextResponse } from "next/server";
+import { mapCategoryFromStrapi } from "../suppliers/strapi-helpers";
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_BACKEND_URL!;
 const STRAPI_TOKEN = process.env.STRAPI_ADMIN_TOKEN || process.env.STRAPI_API_TOKEN;
@@ -41,16 +41,28 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
 
 function mapIngredientFromStrapi(s: any) {
   if (!s) return null;
-  const { id, attributes } = s;
-  if (!id || !attributes) return s; // Fallback for flat structure
-  return {
-    id: id,
+  const entry = s?.data ?? s;
+  const attributes = entry?.attributes ?? entry;
+  if (!entry?.id || !attributes) return null;
+
+  const categoria_ingrediente = mapCategoryFromStrapi(attributes.categoria_ingrediente ?? entry.categoria_ingrediente);
+
+  const docSource = attributes.documentId ?? entry.documentId;
+  const documentId = typeof docSource === "string" && docSource.trim() !== ""
+    ? docSource.trim()
+    : String(entry.id);
+
+  const base = {
+    id: entry.id,
+    documentId,
     ingredienteName: attributes.ingredienteName,
     stock: attributes.stock,
     unidadMedida: attributes.unidadMedida,
     precio: attributes.precio,
     stockUpdatedAt: attributes.stockUpdatedAt,
   };
+
+  return categoria_ingrediente ? { ...base, categoria_ingrediente } : base;
 }
 
 export async function GET(req: Request) {
@@ -76,10 +88,3 @@ export async function GET(req: Request) {
       meta,
       totalCount: meta?.pagination?.total ?? items.length,
     };
-
-    return NextResponse.json(payload);
-  } catch (e: any) {
-    console.log("[admin/ingredients][GET] unexpected error:", e);
-    return NextResponse.json({ error: "Error inesperado", details: String(e) }, { status: 500 });
-  }
-}
