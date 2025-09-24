@@ -1,6 +1,8 @@
 'use client';
-import { ArrowUpDown, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpDown, Pencil, Trash2, AlertTriangle, Eye } from 'lucide-react';
 import { IngredientType } from '@/types/ingredient';
+import IngredientPricesModal from './IngredientPricesModal';
 
 interface Props {
   ingredientes: IngredientType[];
@@ -11,9 +13,22 @@ interface Props {
 }
 
 export default function IngredientTable({ ingredientes, onEdit, onDelete, orderBy, setOrderBy }: Props) {
+  const [showPrices, setShowPrices] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<IngredientType | null>(null);
+
   const handleSort = (field: keyof IngredientType) => {
     const newDirection = orderBy.field === field && orderBy.direction === 'asc' ? 'desc' : 'asc';
     setOrderBy({ field, direction: newDirection });
+  };
+
+  const handleOpenPrices = (ingredient: IngredientType) => {
+    setSelectedIngredient(ingredient);
+    setShowPrices(true);
+  };
+
+  const handleClosePrices = () => {
+    setShowPrices(false);
+    setSelectedIngredient(null);
   };
 
   return (
@@ -51,6 +66,12 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
                 {i.stockUpdatedAt ? new Date(i.stockUpdatedAt).toLocaleString('es-AR') : '-'}
               </td>
               <td className="p-3 text-center flex justify-center gap-3">
+                <button
+                  onClick={() => handleOpenPrices(i)}
+                  className="flex items-center gap-1 rounded-full bg-[#FBE6D4] px-3 py-1 text-xs font-semibold text-[#5A3E1B] transition hover:bg-[#F6D8BA]"
+                >
+                  <Eye className="h-3.5 w-3.5" /> Ver precios
+                </button>
                 <button onClick={() => onEdit(i)} className="text-[#8B4513] hover:text-[#5A3E1B] transition">
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -62,6 +83,11 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
           ))}
         </tbody>
       </table>
+      <IngredientPricesModal
+        ingredient={selectedIngredient}
+        open={showPrices}
+        onClose={handleClosePrices}
+      />
     </div>
   );
 }
