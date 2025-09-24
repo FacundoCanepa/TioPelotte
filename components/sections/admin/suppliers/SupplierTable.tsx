@@ -1,7 +1,7 @@
 
-import { Supplier } from "@/types/supplier";
+import { SupplierType } from "@/types/supplier";
 
-export function SupplierTable({ suppliers }: { suppliers: Supplier[] }) {
+export function SupplierTable({ suppliers }: { suppliers: SupplierType[] }) {
   return (
     <table className="min-w-full divide-y divide-gray-200">
       <thead className="bg-gray-50">
