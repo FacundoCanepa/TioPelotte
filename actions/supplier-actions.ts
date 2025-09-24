@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { SupplierType } from '@/types/supplier';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // A simple generic type for API responses that wrap data in a `data` property
 type ApiDataResponse<T> = {
@@ -21,7 +21,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function createSupplier(supplierData: Partial<SupplierType>): Promise<SupplierType> {
-  const response = await fetch(`${API_URL}/suppliers`, {
+  const response = await fetch(`${API_URL}/api/suppliers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(supplierData),
@@ -32,7 +32,7 @@ export async function createSupplier(supplierData: Partial<SupplierType>): Promi
 }
 
 export async function updateSupplier(id: number, supplierData: Partial<SupplierType>): Promise<SupplierType> {
-  const response = await fetch(`${API_URL}/suppliers/${id}`, {
+  const response = await fetch(`${API_URL}/api/suppliers/${id}`, {
     method: 'PATCH', // or 'PUT'
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(supplierData),
@@ -43,7 +43,7 @@ export async function updateSupplier(id: number, supplierData: Partial<SupplierT
 }
 
 export async function deleteSupplier(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/suppliers/${id}`, {
+  const response = await fetch(`${API_URL}/api/suppliers/${id}`, {
     method: 'DELETE',
   });
   // A DELETE request might not return a JSON body, so we handle it differently
