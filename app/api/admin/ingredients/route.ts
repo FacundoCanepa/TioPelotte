@@ -1,52 +1,85 @@
+
 import { NextRequest, NextResponse } from "next/server";
 
-const backend = process.env.NEXT_PUBLIC_BACKEND_URL!;
-const token = process.env.STRAPI_PEDIDOS_TOKEN!;
+const STRAPI_URL = process.env.NEXT_PUBLIC_BACKEND_URL!;
+const STRAPI_TOKEN = process.env.STRAPI_ADMIN_TOKEN || process.env.STRAPI_API_TOKEN;
 
-export async function GET() {
-  const res = await fetch(
-    `${backend}/api/ingredientes?sort[0]=ingredienteName&pagination[pageSize]=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await res.json();
-
-  return NextResponse.json(data, { status: res.status });
+async function strapiFetch(path: string, init?: RequestInit) {
+  const url = `${STRAPI_URL}${path}`;
+  const method = init?.method || "GET";
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (STRAPI_TOKEN) headers.set("Authorization", `Bearer ${STRAPI_TOKEN}`);
+  try {
+    const res = await fetch(url, { ...init, headers, cache: "no-store" });
+    return res;
+  } catch (e) {
+    console.error("[admin/ingredients][strapiFetch] error", e);
+    throw e;
+  }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    console.log("📥 POST recibido body:", body);
+function buildStrapiListURL(searchParams: URLSearchParams) {
+  const page = Number(searchParams.get("page") || "1");
+  const pageSize = Number(searchParams.get("pageSize") || "50");
+  const q = (searchParams.get("q") || "").trim();
 
-    const data = {
-      ingredienteName: body.ingredienteName,
-      Stock: body.Stock,
-      unidadMedida: body.unidadMedida,
-      precio: body.precio,
+  const sp = new URLSearchParams();
+
+  sp.set("populate", "*");
+  
+  if (q) {
+    sp.set("filters[ingredienteName][$containsi]", q);
+  }
+
+  sp.set("pagination[page]", String(page));
+  sp.set("pagination[pageSize]", String(pageSize));
+  sp.set("sort[0]", "updatedAt:desc");
+
+  return `/api/ingredientes?${sp.toString()}`;
+}
+
+function mapIngredientFromStrapi(s: any) {
+  if (!s) return null;
+  const { id, attributes } = s;
+  if (!id || !attributes) return s; // Fallback for flat structure
+  return {
+    id: id,
+    ingredienteName: attributes.ingredienteName,
+    stock: attributes.stock,
+    unidadMedida: attributes.unidadMedida,
+    precio: attributes.precio,
+    stockUpdatedAt: attributes.stockUpdatedAt,
+  };
+}
+
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const listUrl = buildStrapiListURL(url.searchParams);
+    const res = await strapiFetch(listUrl);
+    const json = await res.json();
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error listando ingredientes", details: json },
+        { status: res.status || 500 }
+      );
+    }
+
+    const data = Array.isArray(json.data) ? json.data : [];
+    const items = data.map(mapIngredientFromStrapi).filter(Boolean);
+
+    const meta = json.meta ?? { pagination: { page: 1, pageSize: items.length, total: items.length, pageCount: 1 } };
+
+    const payload = {
+      items,
+      meta,
+      totalCount: meta?.pagination?.total ?? items.length,
     };
 
-    const res = await fetch(`${backend}/api/ingredientes`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ data }),
-    });
-
-    const json = await res.json();
-    console.log("✅ Respuesta POST ingredientes:", json);
-    return NextResponse.json(json, { status: res.status });
-  } catch (error) {
-    console.error("🔥 Error en POST ingredientes:", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json(payload);
+  } catch (e: any) {
+    console.log("[admin/ingredients][GET] unexpected error:", e);
+    return NextResponse.json({ error: "Error inesperado", details: String(e) }, { status: 500 });
   }
 }
