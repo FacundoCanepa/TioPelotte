@@ -14,6 +14,8 @@ export default function IngredientesSection() {
     setSearch,
     filterUnidad,
     setFilterUnidad,
+    filterCategoria,
+    setFilterCategoria,
     filterLowStock,
     setFilterLowStock,
     orderBy,
@@ -53,6 +55,8 @@ export default function IngredientesSection() {
           setSearch={setSearch}
           filterUnidad={filterUnidad}
           setFilterUnidad={setFilterUnidad}
+          filterCategoria={filterCategoria}
+          setFilterCategoria={setFilterCategoria}
           unidades={unidades}
           filterLowStock={filterLowStock}
           setFilterLowStock={setFilterLowStock}

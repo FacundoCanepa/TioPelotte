@@ -1,7 +1,7 @@
 // Vercel, please refresh this file! Cache invalidation attempt: 2024-07-16T22:15:00Z
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { IngredientType } from '@/types/ingredient';
 import { toast } from 'sonner';
 import { generateSlug } from '@/lib/utils';
@@ -12,6 +12,7 @@ export function useIngredientesAdmin() {
 
   const [search, setSearch] = useState('');
   const [filterUnidad, setFilterUnidad] = useState('all');
+  const [filterCategoria, setFilterCategoria] = useState<number | 'all'>('all');
   const [filterLowStock, setFilterLowStock] = useState(false);
 
   const [orderBy, setOrderBy] = useState({
@@ -112,6 +113,11 @@ export function useIngredientesAdmin() {
   const filteredAndSortedIngredientes = ingredientes
     .filter(i => i.ingredienteName?.toLowerCase().includes(search.toLowerCase()))
     .filter(i => (filterUnidad === 'all' ? true : i.unidadMedida === filterUnidad))
+    .filter(i =>
+      filterCategoria === 'all'
+        ? true
+        : (i.categoria_ingrediente?.id ?? null) === filterCategoria
+    )
     .filter(i => (filterLowStock ? i.stock <= 5 : true))
     .sort((a, b) => {
       const field = orderBy.field;
@@ -138,6 +144,8 @@ export function useIngredientesAdmin() {
     setSearch,
     filterUnidad,
     setFilterUnidad,
+    filterCategoria,
+    setFilterCategoria,
     filterLowStock,
     setFilterLowStock,
     orderBy,
