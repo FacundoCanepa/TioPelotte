@@ -6,33 +6,29 @@ interface Props {
   ingredientes: IngredientType[];
   onEdit: (i: IngredientType) => void;
   onDelete: (documentId: string) => void;
-  orderBy: { field: string; direction: 'asc' | 'desc' };
-  setOrderBy: (v: { field: string; direction: 'asc' | 'desc' }) => void;
+  orderBy: { field: keyof IngredientType; direction: 'asc' | 'desc' };
+  setOrderBy: (v: { field: keyof IngredientType; direction: 'asc' | 'desc' }) => void;
 }
 
 export default function IngredientTable({ ingredientes, onEdit, onDelete, orderBy, setOrderBy }: Props) {
+  const handleSort = (field: keyof IngredientType) => {
+    const newDirection = orderBy.field === field && orderBy.direction === 'asc' ? 'desc' : 'asc';
+    setOrderBy({ field, direction: newDirection });
+  };
+
   return (
     <div className="overflow-x-auto bg-[#FFFCF7] rounded-xl shadow-lg border border-[#EADBC8]">
       <table className="min-w-full text-sm text-[#4A2E15]">
         <thead className="bg-[#FBE6D4] text-[#5A3E1B] uppercase text-xs tracking-wide">
           <tr>
-            <th
-              className="p-3 text-left cursor-pointer"
-              onClick={() => setOrderBy({ field: 'ingredienteName', direction: orderBy.direction === 'asc' ? 'desc' : 'asc' })}
-            >
+            <th className="p-3 text-left cursor-pointer" onClick={() => handleSort('ingredienteName')}>
               Nombre <ArrowUpDown className="inline h-3 w-3 ml-1" />
             </th>
-            <th
-              className="p-3 text-left cursor-pointer"
-              onClick={() => setOrderBy({ field: 'stock', direction: orderBy.direction === 'asc' ? 'desc' : 'asc' })}
-            >
+            <th className="p-3 text-left cursor-pointer" onClick={() => handleSort('stock')}>
               Stock <ArrowUpDown className="inline h-3 w-3 ml-1" />
             </th>
             <th className="p-3 text-left">Unidad</th>
-            <th
-              className="p-3 text-left cursor-pointer"
-              onClick={() => setOrderBy({ field: 'precio', direction: orderBy.direction === 'asc' ? 'desc' : 'asc' })}
-            >
+            <th className="p-3 text-left cursor-pointer" onClick={() => handleSort('precio')}>
               Precio <ArrowUpDown className="inline h-3 w-3 ml-1" />
             </th>
             <th className="p-3 text-left">Actualizado</th>
