@@ -1,5 +1,6 @@
 import { IngredientType } from "./ingredient";
 import { SupplierType } from "./supplier";
+import {Category} from "./categoria_ingrediente"
 
 export type IngredientSupplierPrice = {
   id: number;
@@ -10,4 +11,5 @@ export type IngredientSupplierPrice = {
   unit: string;
   minOrderQty: number;
   validFrom: string;
+  categoria_ingrediente: Category ;
 };
