@@ -5,6 +5,7 @@ import { SupplierType } from '@/types/supplier';
 import { useState, useEffect } from 'react';
 import { useGetIngredients } from '@/components/hooks/useGetIngredients';
 import Select from 'react-select';
+import { IngredientType } from '@/types/ingredient';
 
 const defaultForm: Partial<SupplierType> = {
   name: '',
@@ -17,14 +18,23 @@ interface SupplierFormProps {
   onSave: (supplier: Partial<SupplierType>) => void;
   onCancel: () => void;
   isLoading: boolean;
+  existingSupplier?: Partial<SupplierType>;
 }
 
-export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps) {
+export function SupplierForm({ onSave, onCancel, isLoading, existingSupplier }: SupplierFormProps) {
   const [form, setForm] = useState(defaultForm);
   const { data: ingredientsData, isLoading: isLoadingIngredients } = useGetIngredients();
 
+  useEffect(() => {
+    if (existingSupplier) {
+      setForm(existingSupplier);
+    } else {
+      setForm(defaultForm);
+    }
+  }, [existingSupplier]);
+
   const ingredientOptions = ingredientsData?.items.map(ingredient => ({ 
-    value: ingredient.id, 
+    value: ingredient,
     label: ingredient.ingredienteName 
   })) || [];
 
@@ -37,10 +47,10 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
   };
   
   const handleSelectChange = (selectedOptions: any) => {
-    const ingredientIds = selectedOptions ? selectedOptions.map((option: any) => option.value) : [];
+    const ingredients = selectedOptions ? selectedOptions.map((option: any) => option.value) : [];
     setForm(prevForm => ({
       ...prevForm,
-      ingredientes: ingredientIds,
+      ingredientes: ingredients,
     }));
   };
 
@@ -48,6 +58,10 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
     e.preventDefault();
     onSave(form);
   };
+
+  const selectedIngredients = ingredientOptions.filter(option => 
+    form.ingredientes?.some((ing: IngredientType) => ing.id === option.value.id)
+  );
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
@@ -57,7 +71,7 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
           type="text"
           name="name"
           id="name"
-          value={form.name}
+          value={form.name || ''}
           onChange={handleChange}
           className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
@@ -84,6 +98,7 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
           classNamePrefix="select"
           placeholder="Selecciona los ingredientes..."
           onChange={handleSelectChange}
+          value={selectedIngredients}
         />
       </div>
       <div className="flex items-center">
@@ -91,7 +106,7 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
           id="active"
           name="active"
           type="checkbox"
-          checked={form.active}
+          checked={form.active || false}
           onChange={handleChange}
           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
         />

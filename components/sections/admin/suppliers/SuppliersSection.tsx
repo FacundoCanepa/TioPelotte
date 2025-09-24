@@ -3,7 +3,7 @@
 
 import { useState, useTransition } from 'react';
 import { useGetSuppliers } from '@/components/hooks/useGetSuppliers';
-import { createSupplier } from '@/components/hooks/useCreateSupplier';
+import { createSupplier, updateSupplier, deleteSupplier } from '@/actions/supplier-actions';
 import { SupplierTable } from './SupplierTable';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
@@ -11,26 +11,41 @@ import { SupplierForm } from './SupplierForm';
 import { SupplierType } from '@/types/supplier';
 
 export function SuppliersSection() {
-  const { data, isLoading, isError, error, page, pageSize, q } = useGetSuppliers();
+  const { data, isLoading, isError, error, page, pageSize, q, mutate } = useGetSuppliers();
   const [isCreating, setIsCreating] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Partial<SupplierType> | null>(null);
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleCreate = () => {
+    setEditingSupplier(null);
     setIsCreating(true);
+    setSaveError(null);
+  };
+
+  const handleEdit = (supplier: SupplierType) => {
+    setIsCreating(false);
+    setEditingSupplier(supplier);
     setSaveError(null);
   };
 
   const handleCancel = () => {
     setIsCreating(false);
+    setEditingSupplier(null);
     setSaveError(null);
   };
 
-  const handleSave = (supplier: Partial<SupplierType>) => {
+  const handleSave = (supplierData: Partial<SupplierType>) => {
     startTransition(async () => {
       try {
-        await createSupplier(supplier);
+        if (editingSupplier) {
+          await updateSupplier(editingSupplier.id!, supplierData);
+        } else {
+          await createSupplier(supplierData);
+        }
+        mutate(); // Re-fetch data
         setIsCreating(false);
+        setEditingSupplier(null);
       } catch (e) {
         if (e instanceof Error) {
           setSaveError(e.message);
@@ -41,6 +56,25 @@ export function SuppliersSection() {
     });
   };
 
+  const handleDelete = (supplierId: number) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
+      startTransition(async () => {
+        try {
+          await deleteSupplier(supplierId);
+          mutate(); // Re-fetch data
+        } catch (e) {
+          if (e instanceof Error) {
+            setSaveError(e.message);
+          } else {
+            setSaveError('Ocurrió un error inesperado al eliminar el proveedor.');
+          }
+        }
+      });
+    }
+  };
+
+  const formTitle = editingSupplier ? 'Editar Proveedor' : 'Crear Nuevo Proveedor';
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -50,14 +84,15 @@ export function SuppliersSection() {
         </button>
       </div>
 
-      {isCreating && (
-        <div className="my-4 p-4 border rounded-md">
-          <h2 className="text-lg font-semibold mb-2">Crear Nuevo Proveedor</h2>
-          {saveError && <p className="text-red-500 mb-2">{saveError}</p>}
+      {(isCreating || editingSupplier) && (
+        <div className="my-4 p-4 border rounded-md shadow-lg bg-white">
+          <h2 className="text-xl font-semibold mb-4">{formTitle}</h2>
+          {saveError && <p className="text-red-500 mb-2">Error: {saveError}</p>}
           <SupplierForm 
             onSave={handleSave} 
             onCancel={handleCancel} 
             isLoading={isPending} 
+            existingSupplier={editingSupplier || undefined}
           />
         </div>
       )}
@@ -67,7 +102,7 @@ export function SuppliersSection() {
         {isError && <p>Error al cargar los proveedores: {error?.message || 'Ocurrió un error'}</p>}
         {data && (
           <>
-            <SupplierTable suppliers={data.items} />
+            <SupplierTable suppliers={data.items} onEdit={handleEdit} onDelete={handleDelete} />
             <Pagination
               currentPage={page}
               pageSize={pageSize}
