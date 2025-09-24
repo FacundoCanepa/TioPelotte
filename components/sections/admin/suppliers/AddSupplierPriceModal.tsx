@@ -63,6 +63,20 @@ export function AddSupplierPriceModal({
   }, [supplier?.ingredientes]);
 
   const hasIngredients = ingredientOptions.length > 0;
+  const selectedIngredient = useMemo(() => {
+    if (!form.ingredientId) return null;
+    return ingredientOptions.find(
+      (ingredient) => getIngredientIdentifier(ingredient) === form.ingredientId
+    );
+  }, [form.ingredientId, ingredientOptions]);
+
+  const showMissingCategoryWarning = useMemo(() => {
+    if (!selectedIngredient) return false;
+    const category =
+      selectedIngredient.categoria_ingrediente as IngredientType["categoria_ingrediente"] | null | undefined;
+
+    return category == null;
+  }, [selectedIngredient]);
 
   const unitOptions = useMemo(() => {
     const ingredientUnits = ingredientOptions
@@ -125,20 +139,31 @@ export function AddSupplierPriceModal({
     }
 
     if (!form.unitPrice || Number(form.unitPrice) <= 0) {
-      toast.error("Ingresá un precio válido");
+        toast.error("El precio unitario debe ser mayor a 0");
       return;
     }
 
     if (!form.unit) {
-      toast.error("Seleccioná una unidad");
+        toast.error("Seleccioná una unidad para el precio");
       return;
     }
-
+    if (!form.validFrom) {
+        toast.error("Indicá desde cuándo aplica el precio");
+        return;
+      }
+  
+      let minOrderQtyValue: number | null = null;
+      if (form.minOrderQty) {
+        const parsedMinOrderQty = Number(form.minOrderQty);
+        if (!Number.isFinite(parsedMinOrderQty) || parsedMinOrderQty <= 0) {
+          toast.error("La cantidad mínima debe ser mayor a 0");
+          return;
+        }
+        minOrderQtyValue = parsedMinOrderQty;
+      }
+  
     try {
       setSubmitting(true);
-      const selectedIngredient = ingredientOptions.find(
-        (ingredient) => getIngredientIdentifier(ingredient) === form.ingredientId
-      );
 
       if (!selectedIngredient) {
         toast.error("No se encontró el ingrediente seleccionado");
@@ -150,7 +175,7 @@ export function AddSupplierPriceModal({
         unitPrice: Number(form.unitPrice),
         currency: normalizeCurrency(form.currency),
         unit: form.unit,
-        minOrderQty: form.minOrderQty ? Number(form.minOrderQty) : null,
+        minOrderQty: minOrderQtyValue,
         validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
         ingrediente: selectedIngredient
           ? selectedIngredient.documentId
@@ -170,12 +195,12 @@ export function AddSupplierPriceModal({
       };
 
       await createPrice(dto);
-      toast.success("Precio agregado correctamente");
+      toast.success("El precio se guardó correctamente");
       await onSuccess();
       handleClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error inesperado";
-      toast.error(message);
+      toast.error(`No se pudo guardar el precio: ${message}`);
     } finally {
       setSubmitting(false);
     }
@@ -229,6 +254,11 @@ export function AddSupplierPriceModal({
             {!hasIngredients && (
               <p className="text-xs text-red-500">Este proveedor aún no tiene ingredientes asociados.</p>
             )}
+            {showMissingCategoryWarning && (
+              <p className="text-xs text-amber-600">
+                Este ingrediente no tiene categoría cargada. Podés cargarla más tarde.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -237,7 +267,7 @@ export function AddSupplierPriceModal({
               <input
                 type="number"
                 step="0.01"
-                min="0"
+                min="0.01"
                 value={form.unitPrice}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, unitPrice: event.target.value }))
@@ -287,7 +317,7 @@ export function AddSupplierPriceModal({
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, validFrom: event.target.value }))
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"required
               />
             </div>
           </div>
@@ -296,7 +326,7 @@ export function AddSupplierPriceModal({
             <label className="block text-sm font-semibold text-[#5A3E1B]">Cantidad mínima (opcional)</label>
             <input
               type="number"
-              min="0"
+              min="1"
               step="1"
               value={form.minOrderQty}
               onChange={(event) =>
