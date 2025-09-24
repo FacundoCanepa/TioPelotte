@@ -20,8 +20,10 @@ async function writeData(data: SupplierType[]): Promise<void> {
 }
 
 // GET a single supplier
-export async function GET(req: NextRequest, context: { params: { id: string } }) {
-  const id = parseInt(context.params.id);
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: idString } = await context.params;
+  const id = parseInt(idString);
+
   const suppliers = await readData();
   const supplier = suppliers.find(s => s.id === id);
 
@@ -32,10 +34,11 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
   return NextResponse.json({ data: supplier });
 }
 
-
 // PATCH (update) an existing supplier
-export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
-  const id = parseInt(context.params.id);
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: idString } = await context.params;
+  const id = parseInt(idString);
+
   try {
     const suppliers = await readData();
     const supplierIndex = suppliers.findIndex(s => s.id === id);
@@ -56,8 +59,10 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
 }
 
 // DELETE a supplier
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
-  const id = parseInt(context.params.id);
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id: idString } = await context.params;
+  const id = parseInt(idString);
+
   const suppliers = await readData();
   const updatedSuppliers = suppliers.filter(s => s.id !== id);
 
