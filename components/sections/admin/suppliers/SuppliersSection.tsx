@@ -1,116 +1,121 @@
+"use client";
 
-'use client';
+import { Loader2, Plus } from "lucide-react";
+import { SupplierForm } from "./SupplierForm";
+import { SupplierTable } from "./SupplierTable";
+import { useSuppliersAdmin } from "./hooks/useSuppliersAdmin";
 
-import { useState, useTransition } from 'react';
-import { useGetSuppliers } from '@/components/hooks/useGetSuppliers';
-import { createSupplier, updateSupplier, deleteSupplier } from '@/actions/supplier-actions';
-import { SupplierTable } from './SupplierTable';
-import { SearchBar } from '@/components/ui/SearchBar';
-import { Pagination } from '@/components/ui/Pagination';
-import { SupplierForm } from './SupplierForm';
-import { SupplierType } from '@/types/supplier';
+export default function SuppliersSection() {
+  const {
+    suppliers,
+    loading,
+    error,
+    search,
+    setSearch,
+    filterActive,
+    setFilterActive,
+    form,
+    setForm,
+    showForm,
+    startNew,
+    editSupplier,
+    resetForm,
+    saveSupplier,
+    deleteSupplier,
+    saving,
+    stats,
+  } = useSuppliersAdmin();
 
-export function SuppliersSection() {
-  const { data, isLoading, isError, error, page, pageSize, q, refetch } = useGetSuppliers();
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<Partial<SupplierType> | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const isEditing = Boolean(form.documentId);
+  const formTitle = isEditing ? "Editar proveedor" : "Nuevo proveedor";
 
-  const handleCreate = () => {
-    setEditingSupplier(null);
-    setIsCreating(true);
-    setSaveError(null);
-  };
-
-  const handleEdit = (supplier: SupplierType) => {
-    setIsCreating(false);
-    setEditingSupplier(supplier);
-    setSaveError(null);
-  };
-
-  const handleCancel = () => {
-    setIsCreating(false);
-    setEditingSupplier(null);
-    setSaveError(null);
-  };
-
-  const handleSave = (supplierData: Partial<SupplierType>) => {
-    startTransition(async () => {
-      try {
-        if (editingSupplier) {
-          await updateSupplier(editingSupplier.id!, supplierData);
-        } else {
-          await createSupplier(supplierData);
-        }
-        refetch(); // Re-fetch data
-        setIsCreating(false);
-        setEditingSupplier(null);
-      } catch (e) {
-        if (e instanceof Error) {
-          setSaveError(e.message);
-        } else {
-          setSaveError('Ocurrió un error inesperado al guardar el proveedor.');
-        }
-      }
-    });
-  };
-
-  const handleDelete = (supplierId: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
-      startTransition(async () => {
-        try {
-          await deleteSupplier(supplierId);
-          refetch(); // Re-fetch data
-        } catch (e) {
-          if (e instanceof Error) {
-            setSaveError(e.message);
-          } else {
-            setSaveError('Ocurrió un error inesperado al eliminar el proveedor.');
-          }
-        }
-      });
-    }
-  };
-
-  const formTitle = editingSupplier ? 'Editar Proveedor' : 'Crear Nuevo Proveedor';
+  if (loading && suppliers.length === 0) {
+    return (
+      <div className="w-full flex justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-[#8B4513]" />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <SearchBar q={q} placeholder="Buscar por nombre" />
-        <button onClick={handleCreate} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-          Crear Proveedor
+    <section className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#8B4513] font-garamond">
+            Gestión de proveedores
+          </h1>
+          <p className="text-sm text-gray-600">
+            Total: {stats.total} · Activos: {stats.active}
+          </p>
+        </div>
+        <button
+          onClick={startNew}
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#8B4513] px-4 py-2 text-white shadow hover:bg-[#5A3E1B] transition"
+        >
+          <Plus className="h-4 w-4" />
+          Nuevo proveedor
         </button>
+      </header>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar por nombre o teléfono"
+          className="w-full sm:max-w-sm rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+        />
+        <select
+          value={filterActive}
+          onChange={(event) =>
+            setFilterActive(
+              event.target.value as "all" | "active" | "inactive"
+            )
+          }
+          className="w-full sm:w-48 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+        >
+          <option value="all">Todos los estados</option>
+          <option value="active">Solo activos</option>
+          <option value="inactive">Solo inactivos</option>
+        </select>
       </div>
 
-      {(isCreating || editingSupplier) && (
-        <div className="my-4 p-4 border rounded-md shadow-lg bg-white">
-          <h2 className="text-xl font-semibold mb-4">{formTitle}</h2>
-          {saveError && <p className="text-red-500 mb-2">Error: {saveError}</p>}
-          <SupplierForm 
-            onSave={handleSave} 
-            onCancel={handleCancel} 
-            isLoading={isPending} 
-            existingSupplier={editingSupplier || undefined}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="space-y-4 rounded-2xl bg-white p-5 shadow">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-[#8B4513]">{formTitle}</h2>
+            <button
+              onClick={resetForm}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Cancelar
+            </button>
+          </div>
+          <SupplierForm
+            form={form}
+            setForm={setForm}
+            onSave={saveSupplier}
+            onCancel={resetForm}
+            saving={saving}
           />
         </div>
       )}
 
-      <div className="mt-4">
-        {isLoading && <p>Cargando proveedores...</p>}
-        {isError && <p>Error al cargar los proveedores: {error?.message || 'Ocurrió un error'}</p>}
-        {data && (
-          <>
-            <SupplierTable suppliers={data.items} onEdit={handleEdit} onDelete={handleDelete} />
-            <Pagination
-              currentPage={page}
-              pageSize={pageSize}
-              total={data.meta.pagination.total}
-            />
-          </>
+      <div className="rounded-2xl bg-white p-4 shadow">
+        {loading && suppliers.length > 0 ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-6 w-6 animate-spin text-[#8B4513]" />
+          </div>
+        ) : (
+          <SupplierTable suppliers={suppliers} onEdit={editSupplier} onDelete={deleteSupplier} />
         )}
       </div>
-    </div>
+    </section>
   );
 }

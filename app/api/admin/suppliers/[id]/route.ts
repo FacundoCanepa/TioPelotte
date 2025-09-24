@@ -16,6 +16,7 @@ async function readData(): Promise<SupplierType[]> {
 }
 
 async function writeData(data: SupplierType[]): Promise<void> {
+  await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
   await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
 }
 

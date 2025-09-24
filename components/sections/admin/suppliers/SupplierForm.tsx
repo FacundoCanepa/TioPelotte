@@ -1,123 +1,123 @@
+"use client";
 
-'use client';
-
-import { SupplierType } from '@/types/supplier';
-import { useState, useEffect } from 'react';
-import { useGetIngredients } from '@/components/hooks/useGetIngredients';
-import Select from 'react-select';
-import { IngredientType } from '@/types/ingredient';
-
-const defaultForm: Partial<SupplierType> = {
-  name: '',
-  phone: undefined,
-  active: true,
-  ingredientes: [],
-};
+import { Dispatch, SetStateAction, useMemo } from "react";
+import Select from "react-select";
+import { SupplierType } from "@/types/supplier";
+import { useGetIngredients } from "@/components/hooks/useGetIngredients";
+import { IngredientType } from "@/types/ingredient";
 
 interface SupplierFormProps {
-  onSave: (supplier: Partial<SupplierType>) => void;
+  form: Partial<SupplierType>;
+  setForm: Dispatch<SetStateAction<Partial<SupplierType>>>;
+  onSave: () => void;
   onCancel: () => void;
-  isLoading: boolean;
-  existingSupplier?: Partial<SupplierType>;
+  saving: boolean;
 }
 
-export function SupplierForm({ onSave, onCancel, isLoading, existingSupplier }: SupplierFormProps) {
-  const [form, setForm] = useState(defaultForm);
-  const { data: ingredientsData, isLoading: isLoadingIngredients } = useGetIngredients();
+type Option = { value: IngredientType; label: string };
 
-  useEffect(() => {
-    if (existingSupplier) {
-      setForm(existingSupplier);
-    } else {
-      setForm(defaultForm);
-    }
-  }, [existingSupplier]);
+export function SupplierForm({ form, setForm, onSave, onCancel, saving }: SupplierFormProps) {
+  const { data: ingredientsData, isLoading: loadingIngredients } = useGetIngredients();
 
-  const ingredientOptions = ingredientsData?.items.map(ingredient => ({ 
-    value: ingredient,
-    label: ingredient.ingredienteName 
-  })) || [];
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setForm(prevForm => ({
-      ...prevForm,
-      [name]: type === 'checkbox' ? checked : (name === 'phone' ? (value === '' ? undefined : Number(value)) : value),
+  const ingredientOptions: Option[] = useMemo(() => {
+    const items = ingredientsData?.items ?? [];
+    return items.map((ingredient) => ({
+      value: ingredient,
+      label: ingredient.ingredienteName,
     }));
-  };
-  
-  const handleSelectChange = (selectedOptions: any) => {
-    const ingredients = selectedOptions ? selectedOptions.map((option: any) => option.value) : [];
-    setForm(prevForm => ({
-      ...prevForm,
-      ingredientes: ingredients,
-    }));
+  }, [ingredientsData]);
+
+  const selectedIngredients = useMemo(() => {
+    const current = form.ingredientes ?? [];
+    return ingredientOptions.filter((option) =>
+      current.some((ingredient) => ingredient.id === option.value.id)
+    );
+  }, [form.ingredientes, ingredientOptions]);
+
+  const handleSelectChange = (options: readonly Option[] | null) => {
+    const ingredients = options?.map((option) => option.value) ?? [];
+    setForm((prev) => ({ ...prev, ingredientes: ingredients }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(form);
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSave();
   };
-
-  const selectedIngredients = ingredientOptions.filter(option => 
-    form.ingredientes?.some((ing: IngredientType) => ing.id === option.value.id)
-  );
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre</label>
+    <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold text-[#5A3E1B]">Nombre</label>
         <input
           type="text"
-          name="name"
-          id="name"
-          value={form.name || ''}
-          onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          value={form.name ?? ""}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, name: event.target.value }))
+          }
+          placeholder="Nombre del proveedor"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
         />
       </div>
-      <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
+
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold text-[#5A3E1B]">Teléfono</label>
         <input
-          type="number"
-          name="phone"
-          id="phone"
-          value={form.phone || ''}
-          onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          type="tel"
+          value={form.phone ?? ""}
+          onChange={(event) => {
+            const numericValue = event.target.value.replace(/[^0-9]/g, "");
+            setForm((prev) => ({
+              ...prev,
+              phone: numericValue === "" ? undefined : Number(numericValue),
+            }));
+          }}
+          placeholder="Ej: 5491122334455"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
         />
       </div>
-      <div className="col-span-2">
-        <label htmlFor="ingredientes" className="block text-sm font-medium text-gray-700">Ingredientes</label>
+
+      <div className="md:col-span-2 space-y-1">
+        <label className="block text-sm font-semibold text-[#5A3E1B]">Ingredientes</label>
         <Select
           isMulti
           name="ingredientes"
           options={ingredientOptions}
-          isLoading={isLoadingIngredients}
+          isLoading={loadingIngredients}
           className="basic-multi-select"
           classNamePrefix="select"
-          placeholder="Selecciona los ingredientes..."
-          onChange={handleSelectChange}
+          placeholder="Selecciona los ingredientes"
           value={selectedIngredients}
+          onChange={handleSelectChange}
+          noOptionsMessage={() => (loadingIngredients ? "Cargando..." : "Sin resultados")}
         />
       </div>
-      <div className="flex items-center">
+
+      <label className="flex items-center gap-2 text-sm font-semibold text-[#5A3E1B]">
         <input
-          id="active"
-          name="active"
           type="checkbox"
-          checked={form.active || false}
-          onChange={handleChange}
-          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          checked={form.active ?? true}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, active: event.target.checked }))
+          }
+          className="h-4 w-4 rounded border-gray-300 text-[#8B4513] focus:ring-[#8B4513]"
         />
-        <label htmlFor="active" className="ml-2 block text-sm text-gray-900">Activo</label>
-      </div>
-      <div className="col-span-2 flex justify-end mt-4">
-        <button type="button" onClick={onCancel} className="px-4 py-2 mr-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+        Proveedor activo
+      </label>
+
+      <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-100"
+        >
           Cancelar
         </button>
-        <button type="submit" disabled={isLoading} className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-400">
-          {isLoading ? 'Guardando...' : 'Guardar'}
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-lg bg-[#8B4513] px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-[#5A3E1B] disabled:cursor-not-allowed disabled:bg-[#C8B6A6]"
+        >
+          {saving ? "Guardando..." : "Guardar"}
         </button>
       </div>
     </form>
