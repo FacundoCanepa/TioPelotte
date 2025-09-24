@@ -20,9 +20,10 @@ async function writeData(data: SupplierType[]): Promise<void> {
 }
 
 // GET a single supplier
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
+  const id = parseInt(context.params.id);
   const suppliers = await readData();
-  const supplier = suppliers.find(s => s.id === parseInt(params.id));
+  const supplier = suppliers.find(s => s.id === id);
 
   if (!supplier) {
     return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
@@ -33,10 +34,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 
 // PATCH (update) an existing supplier
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
+  const id = parseInt(context.params.id);
   try {
     const suppliers = await readData();
-    const supplierIndex = suppliers.findIndex(s => s.id === parseInt(params.id));
+    const supplierIndex = suppliers.findIndex(s => s.id === id);
 
     if (supplierIndex === -1) {
       return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
@@ -54,9 +56,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE a supplier
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+  const id = parseInt(context.params.id);
   const suppliers = await readData();
-  const updatedSuppliers = suppliers.filter(s => s.id !== parseInt(params.id));
+  const updatedSuppliers = suppliers.filter(s => s.id !== id);
 
   if (suppliers.length === updatedSuppliers.length) {
     return NextResponse.json({ error: 'Proveedor no encontrado para eliminar' }, { status: 404 });
@@ -66,4 +69,3 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   return new NextResponse(null, { status: 204 }); // No Content
 }
-
