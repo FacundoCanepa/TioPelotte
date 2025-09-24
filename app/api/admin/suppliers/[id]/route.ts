@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Import the shared prisma instance
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // GET a single supplier by ID
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
