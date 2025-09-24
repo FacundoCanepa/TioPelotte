@@ -132,16 +132,41 @@ export function IngredientPricesModal({
 
   const sortedPrices = useMemo(() => {
     return [...prices].sort((a, b) => {
+      const priceA = Number.isFinite(a.price)
+      ? (a.price as number)
+      : Number(a.price ?? Number.POSITIVE_INFINITY);
+    const priceB = Number.isFinite(b.price)
+      ? (b.price as number)
+      : Number(b.price ?? Number.POSITIVE_INFINITY);
+
+    const safePriceA = Number.isFinite(priceA) ? priceA : Number.POSITIVE_INFINITY;
+    const safePriceB = Number.isFinite(priceB) ? priceB : Number.POSITIVE_INFINITY;
+
+    if (safePriceA !== safePriceB) {
+      return safePriceA - safePriceB;
+    }
       const nameA = a.ingredientName?.toLocaleLowerCase?.() ?? "";
       const nameB = b.ingredientName?.toLocaleLowerCase?.() ?? "";
       if (nameA < nameB) return -1;
       if (nameA > nameB) return 1;
-      const priceA = Number.isFinite(a.price) ? (a.price as number) : Number.POSITIVE_INFINITY;
-      const priceB = Number.isFinite(b.price) ? (b.price as number) : Number.POSITIVE_INFINITY;
-      return priceA - priceB;
+      return 0;
     });
   }, [prices]);
+  const { cheapestItem, mostExpensiveItem } = useMemo(() => {
+    const finitePrices = sortedPrices.filter((item) => {
+      const value = Number(item.price);
+      return Number.isFinite(value);
+    });
 
+    if (finitePrices.length === 0) {
+      return { cheapestItem: null, mostExpensiveItem: null } as const;
+    }
+
+    return {
+      cheapestItem: finitePrices[0] ?? null,
+      mostExpensiveItem: finitePrices[finitePrices.length - 1] ?? null,
+    } as const;
+  }, [sortedPrices]);
   if (!open || !ingredient) return null;
 
   const hasPrices = sortedPrices.length > 0;
@@ -201,6 +226,45 @@ export function IngredientPricesModal({
 
           {state === "success" && hasPrices && (
             <div className="overflow-hidden rounded-xl border border-[#EADBC8]">
+                            <div className="grid gap-3 border-b border-[#F0E4D4] bg-[#FFFAF2] px-4 py-4 text-sm text-[#4A2E15] sm:grid-cols-2">
+                <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
+                    Más barato
+                  </span>
+                  {cheapestItem ? (
+                    <div>
+                      <p className="font-semibold">{cheapestItem.ingredientName}</p>
+                      <p className="text-sm text-[#7C5F39]">
+                        {`${formatCurrency(cheapestItem.price as number, cheapestItem.currency ?? "ARS")} / ${
+                          cheapestItem.unit ?? (ingredient as any).unidadMedida ?? "unidad"
+                        }`}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#7C5F39]">Sin precios válidos.</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
+                    Más caro
+                  </span>
+                  {mostExpensiveItem ? (
+                    <div>
+                      <p className="font-semibold">{mostExpensiveItem.ingredientName}</p>
+                      <p className="text-sm text-[#7C5F39]">
+                        {`${formatCurrency(
+                          mostExpensiveItem.price as number,
+                          mostExpensiveItem.currency ?? "ARS"
+                        )} / ${
+                          mostExpensiveItem.unit ?? (ingredient as any).unidadMedida ?? "unidad"
+                        }`}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#7C5F39]">Sin precios válidos.</p>
+                  )}
+                </div>
+              </div>
               <table className="min-w-full divide-y divide-[#F0E4D4] text-sm text-[#4A2E15]">
                 <thead className="bg-[#FBE6D4] text-xs uppercase tracking-wide text-[#5A3E1B]">
                   <tr>
@@ -219,6 +283,9 @@ export function IngredientPricesModal({
                       (ingredient as any).unidadMedida ||
                       "unidad";
                     const isSelected = item.ingredientId === selectedIngredientId;
+                    const isCheapest = cheapestItem?.ingredientId === item.ingredientId;
+                    const isMostExpensive =
+                      mostExpensiveItem?.ingredientId === item.ingredientId && !isCheapest;
 
                     return (
                       <tr
@@ -227,7 +294,21 @@ export function IngredientPricesModal({
                           isSelected ? "bg-[#FFF5E6]" : "hover:bg-[#FFF8EC]"
                         }`}
                       >
-                        <td className="p-3 font-medium">{item.ingredientName}</td>
+                                               <td className="p-3 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{item.ingredientName}</span>
+                            {isCheapest && (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                                Más barato
+                              </span>
+                            )}
+                            {isMostExpensive && (
+                              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                                Más caro
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-3">{supplierName}</td>
                         <td className="p-3 font-semibold text-[#8B4513]">
                           {`${formatCurrency(item.price as number, currency)} / ${unit}`}

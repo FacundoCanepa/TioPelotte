@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { computeCheapestByCategory, IngredientWithPrices } from "@/lib/pricing/cheapest-by-category";
 import type { IngredientSupplierPrice } from "@/types/ingredient-supplier-price";
+import { PRICE_POPULATE } from "@/components/sections/admin/prices/helpers";
 import { mapIngredientFromStrapi, mapPriceFromStrapi, strapiFetch } from "../suppliers/strapi-helpers";
 
 const LOG_PREFIX = "[admin/ingredients][cheapest-by-category]";
 const INGREDIENT_POPULATE = "categoria_ingrediente";
-const PRICE_POPULATE = "ingrediente,ingrediente.categoria_ingrediente,supplier,categoria_ingrediente";
+
 const DEFAULT_PAGE_SIZE = "200";
 
 type UnknownRecord = Record<string, unknown>;
@@ -75,9 +76,15 @@ async function fetchIngredientsByCategory(filter: CategoryFilter): Promise<Ingre
   params.set("pagination[pageSize]", DEFAULT_PAGE_SIZE);
 
   if (filter.categoryDocumentId) {
-    params.set("filters[categoria_ingrediente][documentId][$eq]", filter.categoryDocumentId);
+    params.set(
+        "filters[categoria_ingrediente][documentId][$eq]",
+        filter.categoryDocumentId
+      );
   } else if (filter.categoryId) {
-    params.set("filters[categoria_ingrediente][id][$eq]", filter.categoryId);
+    params.set(
+        "filters[categoria_ingrediente][id][$eq]",
+        filter.categoryId
+      )
   }
 
   const dataArray = await fetchCollection(`/api/ingredientes?${params.toString()}`);
@@ -95,9 +102,15 @@ async function fetchPricesByCategory(filter: CategoryFilter): Promise<Ingredient
   params.set("pagination[pageSize]", DEFAULT_PAGE_SIZE);
 
   if (filter.categoryDocumentId) {
-    params.set("filters[categoria_ingrediente][documentId][$eq]", filter.categoryDocumentId);
+    params.set(
+        "filters[ingrediente][categoria_ingrediente][documentId][$eq]",
+        filter.categoryDocumentId
+      );
   } else if (filter.categoryId) {
-    params.set("filters[categoria_ingrediente][id][$eq]", filter.categoryId);
+    params.set(
+        "filters[ingrediente][categoria_ingrediente][id][$eq]",
+        filter.categoryId
+      );
   }
 
   const dataArray = await fetchCollection(`/api/ingredient-supplier-prices?${params.toString()}`);
