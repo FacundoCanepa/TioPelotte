@@ -9,15 +9,48 @@ import {
 
 type UnknownRecord = Record<string, unknown>;
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isLikelyDocIdString(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (UUID_REGEX.test(trimmed)) return true;
+  return Number.isNaN(Number(trimmed)) && /[a-zA-Z]/.test(trimmed);
+}
+
+function applyCategoryFilter(params: URLSearchParams, rawCategoryId: string | null) {
+  const categoryId = rawCategoryId?.trim() ?? "";
+  params.delete("filters[ingrediente][categoria_ingrediente][documentId][$eq]");
+  params.delete("filters[ingrediente][categoria_ingrediente][id][$eq]");
+  if (!categoryId) return;
+
+  const key = isLikelyDocIdString(categoryId)
+    ? "filters[ingrediente][categoria_ingrediente][documentId][$eq]"
+    : "filters[ingrediente][categoria_ingrediente][id][$eq]";
+
+  params.set(key, categoryId);
+}
 function buildPriceListPath(searchParams: URLSearchParams) {
   const basePath = buildBasePriceListPath(searchParams);
   const [pathname, rawQuery = ""] = basePath.split("?");
   const params = new URLSearchParams(rawQuery);
+  params.delete("populate");
+  params.set("populate", PRICE_POPULATE);
 
-  const categoryId = (searchParams.get("categoryId") ?? "").trim();
-  if (categoryId) {
-    params.set("filters[categoria_ingrediente][id][$eq]", categoryId);
+  const categoryDocumentId = searchParams.get("categoryDocumentId");
+  if (categoryDocumentId?.trim()) {
+    params.delete("filters[ingrediente][categoria_ingrediente][id][$eq]");
+    params.delete("filters[ingrediente][categoria_ingrediente][documentId][$eq]");
+    params.set(
+      "filters[ingrediente][categoria_ingrediente][documentId][$eq]",
+      categoryDocumentId.trim()
+    );
+  } else {
+    applyCategoryFilter(params, searchParams.get("categoryId"));
   }
+  params.delete("categoryId");
+  params.delete("categoryDocumentId");
 
   const queryString = params.toString();
   return queryString ? `${pathname}?${queryString}` : pathname;
@@ -29,16 +62,32 @@ export async function GET(req: NextRequest) {
     const listPath = buildPriceListPath(url.searchParams);
 
     const res = await strapiFetch(listPath);
-    const json = (await res.json()) as UnknownRecord;
+    let json: UnknownRecord | null = null;
+    try {
+      json = (await res.json()) as UnknownRecord;
+    } catch (parseError) {
+      console.error("[admin/prices][GET] Error parsing Strapi response", parseError);
+    }
 
     if (!res.ok) {
       console.error("[admin/prices][GET] Strapi error", { status: res.status, body: json });
+      const message =
+      (json && typeof json === "object" &&
+        typeof (json as { error?: string }).error === "string"
+        ? (json as { error: string }).error
+        : undefined) ||
+      "Error listando precios";
       return NextResponse.json(
-        { error: "Error listando precios", details: json },
+        { ok: false, message },
         { status: res.status || 500 }
       );
     }
-
+    if (!json) {
+      return NextResponse.json(
+        { ok: false, message: "Respuesta inválida del servidor" },
+        { status: 502 }
+      );
+    }
     const data = Array.isArray(json?.data) ? json.data : [];
     const items = data
       .map((entry) => mapPriceFromStrapi(entry))
@@ -46,11 +95,14 @@ export async function GET(req: NextRequest) {
 
     const meta = json?.meta ?? {};
 
-    return NextResponse.json({ items, meta });
+    return NextResponse.json({ ok: true, items, meta });
   } catch (error) {
     console.error("[admin/prices][GET] unexpected error", error);
     return NextResponse.json(
-      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
+      {
+        ok: false,
+        message: String(error instanceof Error ? error.message : error),
+      },
       { status: 500 }
     );
   }

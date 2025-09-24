@@ -11,10 +11,16 @@ export type CheapestByCategoryItem = {
   ingredientId: number;
   ingredientName: string;
   unit: string;
+  cheapest: PriceComparison | null;
+  mostExpensive: PriceComparison | null;
+};
+
+export type PriceComparison = {
   supplierId: number | null;
   supplierName: string;
   price: number;
   currency: string;
+  unit: string;
   validFrom?: string;
 };
 
@@ -29,6 +35,23 @@ function isPriceEffective(price: IngredientSupplierPrice, now: Date): boolean {
   const validFromDate = new Date(rawValidFrom);
   if (Number.isNaN(validFromDate.getTime())) return true;
   return validFromDate.getTime() <= now.getTime();
+}
+
+function buildPriceComparison(
+  price: IngredientSupplierPrice,
+  fallbackUnit: string
+): PriceComparison {
+  const supplier = price.supplier ?? {};
+  const unit = price.unit?.trim?.() || fallbackUnit || "";
+
+  return {
+    supplierId: supplier?.id ?? null,
+    supplierName: supplier?.name ?? "",
+    price: Number(price.unitPrice) || 0,
+    currency: price.currency ?? "",
+    unit,
+    validFrom: price.validFrom || undefined,
+  };
 }
 
 export function computeCheapestByCategory(
@@ -59,32 +82,24 @@ export function computeCheapestByCategory(
       return supplierActive && effective && Number.isFinite(unitPrice);
     });
 
-    if (validPrices.length === 0) {
-      return;
-    }
+    const sortedPrices = validPrices
+      .map((price) => ({ price, value: Number(price.unitPrice) }))
+      .filter(({ value }) => Number.isFinite(value))
+      .sort((a, b) => a.value - b.value)
+      .map(({ price }) => price);
 
-    const cheapest = validPrices.reduce((best, current) => {
-      if (!best) return current;
-      const bestPrice = Number(best.unitPrice);
-      const currentPrice = Number(current.unitPrice);
-      if (!Number.isFinite(bestPrice)) return current;
-      if (!Number.isFinite(currentPrice)) return best;
-      return currentPrice < bestPrice ? current : best;
-    }, validPrices[0]);
-
-    if (!cheapest) return;
+    const fallbackUnit = ingredient.unidadMedida ?? "";
+    const cheapest = sortedPrices[0] ?? null;
+    const mostExpensive = sortedPrices.length > 0 ? sortedPrices[sortedPrices.length - 1] : null;
 
     results.push({
       categoryId: category?.id ?? null,
       categoryName: category?.nombre ?? "",
       ingredientId: ingredient.id,
       ingredientName: ingredient.ingredienteName,
-      unit: ingredient.unidadMedida,
-      supplierId: cheapest.supplier?.id ?? null,
-      supplierName: cheapest.supplier?.name ?? "",
-      price: Number(cheapest.unitPrice) || 0,
-      currency: cheapest.currency ?? "",
-      validFrom: cheapest.validFrom || undefined,
+      unit: fallbackUnit,
+      cheapest: cheapest ? buildPriceComparison(cheapest, fallbackUnit) : null,
+      mostExpensive: mostExpensive ? buildPriceComparison(mostExpensive, fallbackUnit) : null,
     });
   });
 

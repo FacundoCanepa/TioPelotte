@@ -16,8 +16,10 @@ type RequestState = "idle" | "loading" | "success" | "error";
 
 function getIngredientIdentifier(ingredient: IngredientType | null) {
   if (!ingredient) return "";
-  if ((ingredient as any).documentId) return (ingredient as any).documentId as string;
-  return String((ingredient as any).id ?? "");
+  const documentId = ingredient.documentId?.trim?.() ?? "";
+  if (documentId) return documentId;
+  const id = Number.isFinite(ingredient.id) ? ingredient.id : null;
+  return id !== null ? String(id) : "";
 }
 
 function formatCurrency(value: number, currency: string) {
@@ -48,7 +50,7 @@ export function IngredientPricesModal({
   onClose,
 }: IngredientPricesModalProps) {
   const [state, setState] = useState<RequestState>("idle");
-  const [prices, setPrices] = useState<CheapestByCategoryItem[]>([]);
+  const [comparisons, setComparisons] = useState<CheapestByCategoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const ingredientIdentifier = useMemo(
@@ -59,13 +61,13 @@ export function IngredientPricesModal({
   useEffect(() => {
     if (!open) {
       setState("idle");
-      setPrices([]);
+      setComparisons([]);
       setError(null);
       return;
     }
 
     if (!ingredientIdentifier) {
-      setPrices([]);
+      setComparisons([]);
       setState("success");
       return;
     }
@@ -78,14 +80,15 @@ export function IngredientPricesModal({
         setError(null);
 
         const params = new URLSearchParams();
-        if (ingredient && (ingredient as any).documentId) {
-          params.set("ingredientDocumentId", (ingredient as any).documentId as string);
+        const documentId = ingredient?.documentId?.trim?.();
+        if (documentId) {
+          params.set("ingredientDocumentId", documentId);
         } else if (ingredientIdentifier) {
           params.set("ingredientId", ingredientIdentifier);
         }
 
         if (params.size === 0) {
-          setPrices([]);
+          setComparisons([]);
           setState("success");
           return;
         }
@@ -108,7 +111,7 @@ export function IngredientPricesModal({
         const items = Array.isArray(json?.data) ? json.data : [];
 
         if (!cancelled) {
-          setPrices(items);
+          setComparisons(items);
           setState("success");
         }
       } catch (fetchError) {
@@ -119,7 +122,7 @@ export function IngredientPricesModal({
             : "Error desconocido al cargar precios";
         setError(message);
         setState("error");
-        setPrices([]);
+        setComparisons([]);
       }
     }
 
@@ -130,47 +133,56 @@ export function IngredientPricesModal({
     };
   }, [ingredient, ingredientIdentifier, open]);
 
-  const sortedPrices = useMemo(() => {
-    return [...prices].sort((a, b) => {
-      const priceA = Number.isFinite(a.price)
-      ? (a.price as number)
-      : Number(a.price ?? Number.POSITIVE_INFINITY);
-    const priceB = Number.isFinite(b.price)
-      ? (b.price as number)
-      : Number(b.price ?? Number.POSITIVE_INFINITY);
-
-    const safePriceA = Number.isFinite(priceA) ? priceA : Number.POSITIVE_INFINITY;
-    const safePriceB = Number.isFinite(priceB) ? priceB : Number.POSITIVE_INFINITY;
-
-    if (safePriceA !== safePriceB) {
-      return safePriceA - safePriceB;
-    }
+  const sortedComparisons = useMemo(() => {
+    return [...comparisons].sort((a, b) => {
       const nameA = a.ingredientName?.toLocaleLowerCase?.() ?? "";
       const nameB = b.ingredientName?.toLocaleLowerCase?.() ?? "";
       if (nameA < nameB) return -1;
       if (nameA > nameB) return 1;
       return 0;
     });
-  }, [prices]);
-  const { cheapestItem, mostExpensiveItem } = useMemo(() => {
-    const finitePrices = sortedPrices.filter((item) => {
-      const value = Number(item.price);
-      return Number.isFinite(value);
-    });
+  }, [comparisons]);
 
-    if (finitePrices.length === 0) {
-      return { cheapestItem: null, mostExpensiveItem: null } as const;
+  const selectedIngredientId = ingredient?.id ?? null;
+
+  const selectedComparison = useMemo(() => {
+    if (!selectedIngredientId) return null;
+    return (
+      sortedComparisons.find((item) => item.ingredientId === selectedIngredientId) ?? null
+    );
+  }, [selectedIngredientId, sortedComparisons]);
+
+  const hasItems = sortedComparisons.length > 0;
+  const hasAnyPrice = sortedComparisons.some(
+    (item) => item.cheapest !== null || item.mostExpensive !== null
+  );
+
+  const renderPriceSummary = (
+    summary: CheapestByCategoryItem["cheapest"],
+    fallbackUnit: string
+  ) => {
+    if (!summary) {
+      return <span className="text-sm text-[#7C5F39]">Sin precios</span>;
     }
 
-    return {
-      cheapestItem: finitePrices[0] ?? null,
-      mostExpensiveItem: finitePrices[finitePrices.length - 1] ?? null,
-    } as const;
-  }, [sortedPrices]);
-  if (!open || !ingredient) return null;
+    const supplierName = summary.supplierName?.trim() || "Proveedor sin nombre";
+    const unit = summary.unit?.trim() || fallbackUnit || "unidad";
+    const currency = summary.currency?.trim() || "ARS";
+    const priceLabel = `${formatCurrency(summary.price, currency)} / ${unit}`;
 
-  const hasPrices = sortedPrices.length > 0;
-  const selectedIngredientId = (ingredient as any).id;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-[#4A2E15]">{`${supplierName} · ${priceLabel}`}</span>
+        {summary.validFrom ? (
+          <span className="text-xs text-gray-500">
+            Vigente desde {formatDate(summary.validFrom)}
+          </span>
+        ) : null}
+      </div>
+    );
+  };
+
+  if (!open || !ingredient) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
@@ -214,113 +226,87 @@ export function IngredientPricesModal({
             </div>
           )}
 
-          {state === "success" && !hasPrices && (
+          {state === "success" && !hasItems && (
             <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#EADBC8] bg-[#FFFCF7] px-6 py-12 text-center text-sm text-[#5A3E1B]">
               <PackageOpen className="h-10 w-10 text-[#C19A6B]" />
-              <p className="text-base font-semibold">Aún no hay precios cargados</p>
+              <p className="text-base font-semibold">No encontramos ingredientes para comparar</p>
               <p className="text-sm text-[#7C5F39]">
-                Agregá precios desde la sección de proveedores para comparar ofertas.
+                Verificá que el ingrediente tenga asignada una categoría con otros productos.
               </p>
             </div>
           )}
 
-          {state === "success" && hasPrices && (
-            <div className="overflow-hidden rounded-xl border border-[#EADBC8]">
-                            <div className="grid gap-3 border-b border-[#F0E4D4] bg-[#FFFAF2] px-4 py-4 text-sm text-[#4A2E15] sm:grid-cols-2">
-                <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
-                    Más barato
-                  </span>
-                  {cheapestItem ? (
-                    <div>
-                      <p className="font-semibold">{cheapestItem.ingredientName}</p>
-                      <p className="text-sm text-[#7C5F39]">
-                        {`${formatCurrency(cheapestItem.price as number, cheapestItem.currency ?? "ARS")} / ${
-                          cheapestItem.unit ?? (ingredient as any).unidadMedida ?? "unidad"
-                        }`}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-[#7C5F39]">Sin precios válidos.</p>
-                  )}
+          {state === "success" && hasItems && (
+            <div className="space-y-5">
+              {selectedComparison && (
+                <div className="grid gap-3 rounded-xl border border-[#EADBC8] bg-[#FFFAF2] px-4 py-4 text-sm text-[#4A2E15] sm:grid-cols-2">
+                  <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
+                    <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
+                      Más barato
+                    </span>
+                    {renderPriceSummary(selectedComparison.cheapest, selectedComparison.unit)}
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
+                    <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
+                      Más caro
+                    </span>
+                    {renderPriceSummary(selectedComparison.mostExpensive, selectedComparison.unit)}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1 rounded-lg border border-[#EADBC8] bg-white px-4 py-3">
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#8B4513]">
-                    Más caro
-                  </span>
-                  {mostExpensiveItem ? (
-                    <div>
-                      <p className="font-semibold">{mostExpensiveItem.ingredientName}</p>
-                      <p className="text-sm text-[#7C5F39]">
-                        {`${formatCurrency(
-                          mostExpensiveItem.price as number,
-                          mostExpensiveItem.currency ?? "ARS"
-                        )} / ${
-                          mostExpensiveItem.unit ?? (ingredient as any).unidadMedida ?? "unidad"
-                        }`}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-[#7C5F39]">Sin precios válidos.</p>
-                  )}
-                </div>
-              </div>
-              <table className="min-w-full divide-y divide-[#F0E4D4] text-sm text-[#4A2E15]">
-                <thead className="bg-[#FBE6D4] text-xs uppercase tracking-wide text-[#5A3E1B]">
-                  <tr>
-                    <th className="p-3 text-left">Ingrediente</th>
-                    <th className="p-3 text-left">Proveedor más barato</th>
-                    <th className="p-3 text-left">Precio</th>
-                    <th className="p-3 text-left">Válido desde</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0E4D4]">
-                  {sortedPrices.map((item) => {
-                    const supplierName = item.supplierName?.trim() || "Proveedor sin nombre";
-                    const currency = item.currency?.trim() || "ARS";
-                    const unit =
-                      item.unit?.trim() ||
-                      (ingredient as any).unidadMedida ||
-                      "unidad";
-                    const isSelected = item.ingredientId === selectedIngredientId;
-                    const isCheapest = cheapestItem?.ingredientId === item.ingredientId;
-                    const isMostExpensive =
-                      mostExpensiveItem?.ingredientId === item.ingredientId && !isCheapest;
+              )}
 
-                    return (
-                      <tr
-                        key={`${item.ingredientId}-${item.supplierId}-${item.price}-${item.validFrom ?? ""}`}
-                        className={`transition ${
-                          isSelected ? "bg-[#FFF5E6]" : "hover:bg-[#FFF8EC]"
-                        }`}
-                      >
-                                               <td className="p-3 font-medium">
-                          <div className="flex items-center gap-2">
-                            <span>{item.ingredientName}</span>
-                            {isCheapest && (
-                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                                Más barato
-                              </span>
-                            )}
-                            {isMostExpensive && (
-                              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                                Más caro
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3">{supplierName}</td>
-                        <td className="p-3 font-semibold text-[#8B4513]">
-                          {`${formatCurrency(item.price as number, currency)} / ${unit}`}
-                        </td>
-                        <td className="p-3 text-sm text-gray-600">
-                          {formatDate(item.validFrom as string | undefined)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {!hasAnyPrice && (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#EADBC8] bg-[#FFFCF7] px-6 py-12 text-center text-sm text-[#5A3E1B]">
+                  <PackageOpen className="h-10 w-10 text-[#C19A6B]" />
+                  <p className="text-base font-semibold">Aún no hay precios cargados</p>
+                  <p className="text-sm text-[#7C5F39]">
+                    Agregá precios desde la sección de proveedores para comparar ofertas.
+                  </p>
+                </div>
+              )}
+
+              <div className="overflow-hidden rounded-xl border border-[#EADBC8]">
+                <table className="min-w-full divide-y divide-[#F0E4D4] text-sm text-[#4A2E15]">
+                  <thead className="bg-[#FBE6D4] text-xs uppercase tracking-wide text-[#5A3E1B]">
+                    <tr>
+                      <th className="p-3 text-left">Ingrediente</th>
+                      <th className="p-3 text-left">Más barato (proveedor · precio)</th>
+                      <th className="p-3 text-left">Más caro (proveedor · precio)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0E4D4]">
+                    {sortedComparisons.map((item) => {
+                      const isSelected = item.ingredientId === selectedIngredientId;
+
+                      return (
+                        <tr
+                          key={item.ingredientId}
+                          className={`transition ${
+                            isSelected ? "bg-[#FFF5E6]" : "hover:bg-[#FFF8EC]"
+                          }`}
+                        >
+                          <td className="p-3 font-medium align-top">
+                            <div className="flex items-center gap-2">
+                              <span>{item.ingredientName}</span>
+                              {isSelected && (
+                                <span className="rounded-full bg-[#EADBC8] px-2 py-0.5 text-xs font-semibold text-[#5A3E1B]">
+                                  Seleccionado
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 align-top">
+                            {renderPriceSummary(item.cheapest, item.unit)}
+                          </td>
+                          <td className="p-3 align-top">
+                            {renderPriceSummary(item.mostExpensive, item.unit)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
