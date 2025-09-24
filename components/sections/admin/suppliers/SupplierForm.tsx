@@ -25,7 +25,7 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
 
   const ingredientOptions = ingredientsData?.items.map(ingredient => ({ 
     value: ingredient.id, 
-    label: ingredient.nombre 
+    label: ingredient.ingredienteName 
   })) || [];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +74,7 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
         />
       </div>
       <div className="col-span-2">
-        <label htmlFor="ingredientes" className="block text-sm font-medium text-gray-700">Ingredientes</tabel>
+        <label htmlFor="ingredientes" className="block text-sm font-medium text-gray-700">Ingredientes</label>
         <Select
           isMulti
           name="ingredientes"
