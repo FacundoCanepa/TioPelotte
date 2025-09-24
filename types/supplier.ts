@@ -1,11 +1,8 @@
-import { IngredientType } from "./ingredient";
-import { IngredientSupplierPrice } from "./ingredient-supplier-price";
 
-export type Supplier = {
-  id: number;
+export type SupplierType = {
+  documentId: string;
   name: string;
-  phone: number;
-  active: boolean;
-  ingredientas: IngredientType[];
-  ingredient_supplier_prices: IngredientSupplierPrice[];
+  phone: string;
+  email: string;
+  address: string;
 };
