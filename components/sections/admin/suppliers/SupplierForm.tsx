@@ -7,8 +7,6 @@ import { useState } from 'react';
 const defaultForm: Partial<SupplierType> = {
   name: '',
   phone: '',
-  email: '',
-  address: '',
 };
 
 interface SupplierFormProps {
@@ -21,10 +19,11 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
   const [form, setForm] = useState(defaultForm);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setForm(prevForm => ({
+      ...prevForm,
+      [name]: name === 'phone' ? Number(value) : value,
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,32 +47,10 @@ export function SupplierForm({ onSave, onCancel, isLoading }: SupplierFormProps)
       <div>
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
         <input
-          type="text"
+          type="number"
           name="phone"
           id="phone"
-          value={form.phone}
-          onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-        />
-      </div>
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          type="email"
-          name="email"
-          id="email"
-          value={form.email}
-          onChange={handleChange}
-          className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-        />
-      </div>
-      <div>
-        <label htmlFor="address" className="block text-sm font-medium text-gray-700">Dirección</label>
-        <input
-          type="text"
-          name="address"
-          id="address"
-          value={form.address}
+          value={form.phone || ''}
           onChange={handleChange}
           className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         />
