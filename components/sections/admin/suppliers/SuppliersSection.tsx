@@ -11,7 +11,7 @@ import { SupplierForm } from './SupplierForm';
 import { SupplierType } from '@/types/supplier';
 
 export function SuppliersSection() {
-  const { data, isLoading, isError, error, page, pageSize, q, mutate } = useGetSuppliers();
+  const { data, isLoading, isError, error, page, pageSize, q, refetch } = useGetSuppliers();
   const [isCreating, setIsCreating] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Partial<SupplierType> | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,7 +43,7 @@ export function SuppliersSection() {
         } else {
           await createSupplier(supplierData);
         }
-        mutate(); // Re-fetch data
+        refetch(); // Re-fetch data
         setIsCreating(false);
         setEditingSupplier(null);
       } catch (e) {
@@ -61,7 +61,7 @@ export function SuppliersSection() {
       startTransition(async () => {
         try {
           await deleteSupplier(supplierId);
-          mutate(); // Re-fetch data
+          refetch(); // Re-fetch data
         } catch (e) {
           if (e instanceof Error) {
             setSaveError(e.message);
