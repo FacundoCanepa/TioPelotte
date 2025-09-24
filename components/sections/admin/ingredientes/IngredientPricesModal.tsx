@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Loader2, PackageOpen, X } from "lucide-react";
 
-import type { IngredientSupplierPrice } from "@/types/ingredient-supplier-price";
+import type { CheapestByCategoryItem } from "@/lib/pricing/cheapest-by-category";
 import type { IngredientType } from "@/types/ingredient";
 
 type IngredientPricesModalProps = {
@@ -16,8 +16,8 @@ type RequestState = "idle" | "loading" | "success" | "error";
 
 function getIngredientIdentifier(ingredient: IngredientType | null) {
   if (!ingredient) return "";
-  if (ingredient.documentId) return ingredient.documentId;
-  return String(ingredient.id);
+  if ((ingredient as any).documentId) return (ingredient as any).documentId as string;
+  return String((ingredient as any).id ?? "");
 }
 
 function formatCurrency(value: number, currency: string) {
@@ -28,7 +28,7 @@ function formatCurrency(value: number, currency: string) {
     maximumFractionDigits: 2,
   });
 
-  return formatter.format(value);
+  return formatter.format(Number.isFinite(value) ? value : 0);
 }
 
 function formatDate(value: string | null | undefined) {
@@ -42,12 +42,19 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
-export function IngredientPricesModal({ ingredient, open, onClose }: IngredientPricesModalProps) {
+export function IngredientPricesModal({
+  ingredient,
+  open,
+  onClose,
+}: IngredientPricesModalProps) {
   const [state, setState] = useState<RequestState>("idle");
-  const [prices, setPrices] = useState<IngredientSupplierPrice[]>([]);
+  const [prices, setPrices] = useState<CheapestByCategoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const ingredientIdentifier = useMemo(() => getIngredientIdentifier(ingredient), [ingredient]);
+  const ingredientIdentifier = useMemo(
+    () => getIngredientIdentifier(ingredient),
+    [ingredient]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -71,16 +78,34 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
         setError(null);
 
         const params = new URLSearchParams();
-        params.set("ingredientId", ingredientIdentifier);
-
-        const res = await fetch(`/api/admin/prices?${params.toString()}`, { cache: "no-store" });
-
-        if (!res.ok) {
-          throw new Error("No se pudieron cargar los precios");
+        if (ingredient && (ingredient as any).documentId) {
+          params.set("ingredientDocumentId", (ingredient as any).documentId as string);
+        } else if (ingredientIdentifier) {
+          params.set("ingredientId", ingredientIdentifier);
         }
 
-        const json = (await res.json()) as { items?: IngredientSupplierPrice[] };
-        const items = Array.isArray(json?.items) ? json.items : [];
+        if (params.size === 0) {
+          setPrices([]);
+          setState("success");
+          return;
+        }
+
+        const res = await fetch(
+          `/api/admin/ingredients/cheapest-by-category?${params.toString()}`,
+          { cache: "no-store" }
+        );
+
+        const json = (await res.json()) as {
+          ok?: boolean;
+          data?: CheapestByCategoryItem[];
+          message?: string;
+        };
+
+        if (!res.ok || json?.ok === false) {
+          throw new Error(json?.message || "No se pudieron cargar los precios");
+        }
+
+        const items = Array.isArray(json?.data) ? json.data : [];
 
         if (!cancelled) {
           setPrices(items);
@@ -89,7 +114,9 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
       } catch (fetchError) {
         if (cancelled) return;
         const message =
-          fetchError instanceof Error ? fetchError.message : "Error desconocido al cargar precios";
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Error desconocido al cargar precios";
         setError(message);
         setState("error");
         setPrices([]);
@@ -101,12 +128,16 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
     return () => {
       cancelled = true;
     };
-  }, [ingredientIdentifier, open]);
+  }, [ingredient, ingredientIdentifier, open]);
 
   const sortedPrices = useMemo(() => {
     return [...prices].sort((a, b) => {
-      const priceA = Number.isFinite(a.unitPrice) ? a.unitPrice : Number.POSITIVE_INFINITY;
-      const priceB = Number.isFinite(b.unitPrice) ? b.unitPrice : Number.POSITIVE_INFINITY;
+      const nameA = a.ingredientName?.toLocaleLowerCase?.() ?? "";
+      const nameB = b.ingredientName?.toLocaleLowerCase?.() ?? "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      const priceA = Number.isFinite(a.price) ? (a.price as number) : Number.POSITIVE_INFINITY;
+      const priceB = Number.isFinite(b.price) ? (b.price as number) : Number.POSITIVE_INFINITY;
       return priceA - priceB;
     });
   }, [prices]);
@@ -114,10 +145,15 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
   if (!open || !ingredient) return null;
 
   const hasPrices = sortedPrices.length > 0;
+  const selectedIngredientId = (ingredient as any).id;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl"
+      >
         <div className="flex items-start justify-between border-b border-gray-200 px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-[#5A3E1B]">Comparar precios</h2>
@@ -139,7 +175,7 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
           {state === "loading" && (
             <div className="flex flex-col items-center justify-center gap-2 py-10 text-sm text-gray-500">
               <Loader2 className="h-6 w-6 animate-spin text-[#8B4513]" />
-              Cargando precios del ingrediente...
+              <span>Cargando precios...</span>
             </div>
           )}
 
@@ -168,43 +204,36 @@ export function IngredientPricesModal({ ingredient, open, onClose }: IngredientP
               <table className="min-w-full divide-y divide-[#F0E4D4] text-sm text-[#4A2E15]">
                 <thead className="bg-[#FBE6D4] text-xs uppercase tracking-wide text-[#5A3E1B]">
                   <tr>
-                    <th className="p-3 text-left">Proveedor</th>
-                    <th className="p-3 text-left">$/unidad</th>
+                    <th className="p-3 text-left">Ingrediente</th>
+                    <th className="p-3 text-left">Proveedor más barato</th>
+                    <th className="p-3 text-left">Precio</th>
                     <th className="p-3 text-left">Válido desde</th>
-                    <th className="p-3 text-left">Mínimo de pedido</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0E4D4]">
-                  {sortedPrices.map((price, index) => {
-                    const isCheapest = index === 0;
-                    const supplierName = price.supplier?.name?.trim() || "Proveedor sin nombre";
-                    const currency = price.currency?.trim() || "ARS";
-                    const unit = price.unit?.trim() || ingredient.unidadMedida || "unidad";
-                    const minOrderQty = price.minOrderQty ?? null;
+                  {sortedPrices.map((item) => {
+                    const supplierName = item.supplierName?.trim() || "Proveedor sin nombre";
+                    const currency = item.currency?.trim() || "ARS";
+                    const unit =
+                      item.unit?.trim() ||
+                      (ingredient as any).unidadMedida ||
+                      "unidad";
+                    const isSelected = item.ingredientId === selectedIngredientId;
 
                     return (
                       <tr
-                        key={price.id}
-                        className={
-                          "transition" + (isCheapest ? " bg-[#FFF5E6]" : " hover:bg-[#FFF8EC]")
-                        }
+                        key={`${item.ingredientId}-${item.supplierId}-${item.price}-${item.validFrom ?? ""}`}
+                        className={`transition ${
+                          isSelected ? "bg-[#FFF5E6]" : "hover:bg-[#FFF8EC]"
+                        }`}
                       >
-                        <td className="p-3 font-medium">
-                          <div className="flex items-center gap-2">
-                            <span>{supplierName}</span>
-                            {isCheapest && (
-                              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                                Más barato
-                              </span>
-                            )}
-                          </div>
-                        </td>
+                        <td className="p-3 font-medium">{item.ingredientName}</td>
+                        <td className="p-3">{supplierName}</td>
                         <td className="p-3 font-semibold text-[#8B4513]">
-                          {`${formatCurrency(price.unitPrice, currency)} / ${unit}`}
+                          {`${formatCurrency(item.price as number, currency)} / ${unit}`}
                         </td>
-                        <td className="p-3 text-sm text-gray-600">{formatDate(price.validFrom)}</td>
                         <td className="p-3 text-sm text-gray-600">
-                          {minOrderQty !== null && minOrderQty !== undefined ? minOrderQty : "-"}
+                          {formatDate(item.validFrom as string | undefined)}
                         </td>
                       </tr>
                     );
