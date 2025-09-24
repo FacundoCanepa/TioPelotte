@@ -1,9 +1,9 @@
 
-import { Supplier } from "@/types/supplier";
+import { SupplierType } from "@/types/supplier";
 
 // Response shape expected by GET /api/admin/suppliers
 export type SupplierListResponse = {
-  items: Supplier[];
+  items: SupplierType [];
   meta: {
     pagination: {
       page: number;
@@ -56,7 +56,7 @@ export async function listSuppliers(params: ListParams = {}): Promise<SupplierLi
   return json;
 }
 
-export async function createSupplier(data: Omit<Supplier, "id">): Promise<Supplier> {
+export async function createSupplier(data: Omit<SupplierType , "id">): Promise<SupplierType > {
   console.log("[suppliers-api] createSupplier payload", data);
   const res = await fetch("/api/admin/suppliers", {
     method: "POST",
@@ -73,7 +73,7 @@ export async function createSupplier(data: Omit<Supplier, "id">): Promise<Suppli
   return json;
 }
 
-export async function updateSupplier(id: number, data: Partial<Omit<Supplier, "id">>): Promise<Supplier> {
+export async function updateSupplier(id: number, data: Partial<Omit<SupplierType , "id">>): Promise<SupplierType > {
   console.log("[suppliers-api] updateSupplier payload", { id, data });
   const res = await fetch(`/api/admin/suppliers/${id}`, {
     method: "PUT",
