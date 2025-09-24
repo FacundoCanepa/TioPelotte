@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { SupplierType } from '@/types/supplier';
-import { ApiResponse } from '@/types/response';
+import { ResponseType } from '@/types/response';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -21,7 +21,7 @@ export async function createSupplier(supplierData: Partial<SupplierType>): Promi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(supplierData),
   });
-  const result = await handleResponse<ApiResponse<SupplierType>>(response);
+  const result = await handleResponse<ResponseType<SupplierType>>(response);
   revalidatePath('/admin/suppliers'); // O la ruta que corresponda
   return result.data;
 }
@@ -32,7 +32,7 @@ export async function updateSupplier(id: number, supplierData: Partial<SupplierT
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(supplierData),
   });
-  const result = await handleResponse<ApiResponse<SupplierType>>(response);
+  const result = await handleResponse<ResponseType<SupplierType>>(response);
   revalidatePath('/admin/suppliers');
   return result.data;
 }
