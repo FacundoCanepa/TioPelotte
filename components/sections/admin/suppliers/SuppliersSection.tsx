@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { SupplierType } from "@/types/supplier";
+import { AddSupplierPriceModal } from "./AddSupplierPriceModal";
 import { SupplierForm } from "./SupplierForm";
 import { SupplierTable } from "./SupplierTable";
 import { useSuppliersAdmin } from "./hooks/useSuppliersAdmin";
@@ -24,8 +27,25 @@ export default function SuppliersSection() {
     deleteSupplier,
     saving,
     stats,
+    refreshSuppliers,
   } = useSuppliersAdmin();
 
+  const [priceModalSupplier, setPriceModalSupplier] = useState<SupplierType | null>(null);
+  const [showPriceModal, setShowPriceModal] = useState(false);
+
+  const openPriceModal = (supplier: SupplierType) => {
+    setPriceModalSupplier(supplier);
+    setShowPriceModal(true);
+  };
+
+  const closePriceModal = () => {
+    setShowPriceModal(false);
+    setPriceModalSupplier(null);
+  };
+
+  const handlePriceSuccess = async () => {
+    await refreshSuppliers();
+  };
   const isEditing = Boolean(form.documentId);
   const formTitle = isEditing ? "Editar proveedor" : "Nuevo proveedor";
 
@@ -113,9 +133,20 @@ export default function SuppliersSection() {
             <Loader2 className="h-6 w-6 animate-spin text-[#8B4513]" />
           </div>
         ) : (
-          <SupplierTable suppliers={suppliers} onEdit={editSupplier} onDelete={deleteSupplier} />
+          <SupplierTable
+          suppliers={suppliers}
+          onEdit={editSupplier}
+          onDelete={deleteSupplier}
+          onAddPrice={openPriceModal}
+        />
         )}
       </div>
+      <AddSupplierPriceModal
+        supplier={priceModalSupplier}
+        open={showPriceModal}
+        onClose={closePriceModal}
+        onSuccess={handlePriceSuccess}
+      />
     </section>
   );
 }

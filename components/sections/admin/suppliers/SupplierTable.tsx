@@ -1,13 +1,14 @@
 import { SupplierType } from "@/types/supplier";
-import { Pencil, Trash2 } from "lucide-react";
+import { CirclePlus, Pencil, Trash2 } from "lucide-react";
 
 interface SupplierTableProps {
   suppliers: SupplierType[];
   onEdit: (supplier: SupplierType) => void;
   onDelete: (supplier: SupplierType) => void;
+  onAddPrice: (supplier: SupplierType) => void;
 }
 
-export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProps) {
+export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: SupplierTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-lg">
       <table className="min-w-full text-sm text-gray-800">
@@ -82,6 +83,12 @@ export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProp
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-center gap-4">
+                  <button
+                      onClick={() => onAddPrice(supplier)}
+                      className="text-emerald-600 transition hover:text-emerald-800"
+                    >
+                      <CirclePlus className="h-5 w-5" />
+                    </button>
                     <button
                       onClick={() => onEdit(supplier)}
                       className="text-indigo-600 transition hover:text-indigo-900"

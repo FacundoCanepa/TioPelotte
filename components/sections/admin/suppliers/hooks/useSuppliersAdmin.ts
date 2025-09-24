@@ -212,5 +212,6 @@ export function useSuppliersAdmin() {
     deleteSupplier,
     saving,
     stats,
+    refreshSuppliers: fetchSuppliers,
   };
 }
