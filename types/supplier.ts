@@ -1,10 +1,10 @@
 
+import { IngredientType } from "./ingredient";
+
 export type SupplierType = {
-  documentId: string;
-  name: string;
-  phone: string;
-  active: boolean;
   id: number;
-  email: string;
-  address: string;
+  name: string;
+  phone: number;
+  active: boolean;
+  ingredientes?: IngredientType[];
 };
