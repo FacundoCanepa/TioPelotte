@@ -1,86 +1,57 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import fs from 'fs/promises';
+import path from 'path';
+import { SupplierType } from '@/types/supplier';
 
-const prisma = new PrismaClient();
+const dataFilePath = path.join(process.cwd(), 'data', 'suppliers.json');
 
-// GET all suppliers with pagination and search
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const pageSize = parseInt(searchParams.get('limit') || '10');
-  const q = searchParams.get('q');
-
-  const where: any = {};
-  if (q) {
-    where.name = {
-      contains: q,
-      mode: 'insensitive',
-    };
-  }
-
+async function readData(): Promise<SupplierType[]> {
   try {
-    const [suppliers, total] = await prisma.$transaction([
-      prisma.supplier.findMany({
-        where,
-        include: {
-          ingredientes: true, // Include related ingredients
-        },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: {
-          id: 'desc',
-        },
-      }),
-      prisma.supplier.count({ where }),
-    ]);
-
-    const payload = {
-      items: suppliers,
-      meta: {
-        pagination: {
-          page,
-          pageSize,
-          total,
-          pageCount: Math.ceil(total / pageSize),
-        },
-      },
-    };
-
-    return NextResponse.json(payload);
-  } catch (e: any) {
-    console.error('[api/admin/suppliers][GET] unexpected error:', e);
-    return NextResponse.json({ error: 'Error inesperado', details: String(e) }, { status: 500 });
+    const fileContent = await fs.readFile(dataFilePath, 'utf-8');
+    return JSON.parse(fileContent);
+  } catch (error) {
+    // If the file does not exist, return an empty array
+    return [];
   }
+}
+
+async function writeData(data: SupplierType[]): Promise<void> {
+  await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
+}
+
+// GET all suppliers
+export async function GET(req: NextRequest) {
+  const suppliers = await readData();
+  // Implement search and pagination if needed
+  // For now, returning all as per the simple data structure
+  return NextResponse.json({ items: suppliers, meta: { pagination: { total: suppliers.length } } });
 }
 
 // POST a new supplier
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, phone, active, ingredientes } = body;
+    const suppliers = await readData();
+    const newSupplierData = await req.json();
 
-    if (!name) {
+    // Basic validation
+    if (!newSupplierData.name) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
 
-    const newSupplier = await prisma.supplier.create({
-      data: {
-        name,
-        phone,
-        active,
-        ingredientes: {
-          connect: ingredientes?.map((ing: { id: number }) => ({ id: ing.id })) || [],
-        },
-      },
-      include: {
-        ingredientes: true,
-      },
-    });
+    const newId = suppliers.length > 0 ? Math.max(...suppliers.map(s => s.id)) + 1 : 1;
+    const newSupplier: SupplierType = {
+      ...newSupplierData,
+      id: newId,
+      active: newSupplierData.active !== undefined ? newSupplierData.active : true,
+      ingredientes: newSupplierData.ingredientes || [],
+    };
+
+    suppliers.push(newSupplier);
+    await writeData(suppliers);
 
     return NextResponse.json({ data: newSupplier }, { status: 201 });
   } catch (e: any) {
-    console.error('[api/admin/suppliers][POST] unexpected error:', e);
-    return NextResponse.json({ error: 'Internal error', details: e?.message ?? String(e) }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error', details: e.message }, { status: 500 });
   }
 }
