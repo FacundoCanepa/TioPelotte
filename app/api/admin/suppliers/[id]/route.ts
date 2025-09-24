@@ -19,13 +19,12 @@ async function writeData(data: SupplierType[]): Promise<void> {
   await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
 }
 
-// GET a single supplier
+// GET a single supplier by documentId
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: idString } = await context.params;
-  const id = parseInt(idString);
+  const { id: documentId } = await context.params;
 
   const suppliers = await readData();
-  const supplier = suppliers.find(s => s.id === id);
+  const supplier = suppliers.find(s => s.documentId === documentId);
 
   if (!supplier) {
     return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
@@ -34,17 +33,16 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   return NextResponse.json({ data: supplier });
 }
 
-// PATCH (update) an existing supplier
+// PATCH (update) an existing supplier by documentId
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: idString } = await context.params;
-  const id = parseInt(idString);
+  const { id: documentId } = await context.params;
 
   try {
     const suppliers = await readData();
-    const supplierIndex = suppliers.findIndex(s => s.id === id);
+    const supplierIndex = suppliers.findIndex(s => s.documentId === documentId);
 
     if (supplierIndex === -1) {
-      return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Proveedor no encontrado para actualizar' }, { status: 404 });
     }
 
     const updatedData = await req.json();
@@ -58,13 +56,12 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   }
 }
 
-// DELETE a supplier
+// DELETE a supplier by documentId
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: idString } = await context.params;
-  const id = parseInt(idString);
+  const { id: documentId } = await context.params;
 
   const suppliers = await readData();
-  const updatedSuppliers = suppliers.filter(s => s.id !== id);
+  const updatedSuppliers = suppliers.filter(s => s.documentId !== documentId);
 
   if (suppliers.length === updatedSuppliers.length) {
     return NextResponse.json({ error: 'Proveedor no encontrado para eliminar' }, { status: 404 });
