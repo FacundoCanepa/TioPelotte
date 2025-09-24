@@ -7,7 +7,7 @@ import { SupplierType } from "@/types/supplier";
 function createDefaultForm(): Partial<SupplierType> {
   return {
     name: "",
-    phone: undefined,
+    phone: "",
     active: true,
     ingredientes: [],
     ingredient_supplier_prices: [],
@@ -53,7 +53,7 @@ export function useSuppliersAdmin() {
       const activeCount =
         json?.activeCount ??
         json?.meta?.activeCount ??
-        items.filter((supplier) => supplier.active).length;
+        items.filter((supplier) => supplier.active === true).length;
       setStats({ total: totalCount, active: activeCount });
     } catch (err) {
       console.error("❌ Error cargando proveedores", err);
@@ -84,8 +84,8 @@ export function useSuppliersAdmin() {
       id: supplier.id,
       documentId: supplier.documentId,
       name: supplier.name,
-      phone: supplier.phone,
-      active: supplier.active,
+      phone: supplier.phone ?? "",
+      active: supplier.active ?? true,
       ingredientes: supplier.ingredientes ?? [],
       ingredient_supplier_prices: supplier.ingredient_supplier_prices ?? [],
     });
@@ -100,7 +100,7 @@ export function useSuppliersAdmin() {
 
     const payload = {
       name: form.name.trim(),
-      phone: form.phone ?? null,
+      phone: form.phone ? form.phone.trim() : null,
       active: form.active ?? true,
       ingredientes: form.ingredientes ?? [],
       ingredient_supplier_prices: form.ingredient_supplier_prices ?? [],
@@ -110,7 +110,7 @@ export function useSuppliersAdmin() {
     const url = isEditing
       ? `/api/admin/suppliers/${form.documentId}`
       : "/api/admin/suppliers";
-    const method = isEditing ? "PATCH" : "POST";
+      const method = isEditing ? "PUT" : "POST";
 
     try {
       setSaving(true);
@@ -182,7 +182,7 @@ export function useSuppliersAdmin() {
           .toLowerCase()
           .includes(normalizedSearch);
         const matchesPhone = supplier.phone
-          ? String(supplier.phone).includes(normalizedSearch)
+        ? supplier.phone.includes(normalizedSearch)
           : false;
         return matchesName || matchesPhone;
       })

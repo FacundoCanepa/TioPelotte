@@ -39,10 +39,15 @@ export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProp
             </tr>
           ) : (
             suppliers.map((supplier) => (
-              <tr key={supplier.id ?? supplier.documentId} className="transition hover:bg-gray-50">
+              <tr
+                key={supplier.documentId || String(supplier.id) || supplier.name}
+                className="transition hover:bg-gray-50"
+              >
                 <td className="whitespace-nowrap px-6 py-4 font-medium">{supplier.name}</td>
                 <td className="whitespace-nowrap px-6 py-4">
-                  {supplier.phone ? `+${supplier.phone}` : "Sin teléfono"}
+                  {supplier.phone && supplier.phone.trim() !== ""
+                    ? supplier.phone
+                    : "Sin teléfono"}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap gap-1">
@@ -61,13 +66,17 @@ export function SupplierTable({ suppliers, onEdit, onDelete }: SupplierTableProp
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
-                  {supplier.active ? (
+                  {supplier.active === true ? (
                     <span className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">
                       Activo
                     </span>
-                  ) : (
+                  ) : supplier.active === false ? (
                     <span className="inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800">
                       Inactivo
+                    </span>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold leading-5 text-gray-700">
+                      Sin estado
                     </span>
                   )}
                 </td>

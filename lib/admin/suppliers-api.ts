@@ -3,7 +3,7 @@ import { SupplierType } from "@/types/supplier";
 
 // Response shape expected by GET /api/admin/suppliers
 export type SupplierListResponse = {
-  items: SupplierType [];
+  items: SupplierType[];
   meta: {
     pagination: {
       page: number;
@@ -56,7 +56,7 @@ export async function listSuppliers(params: ListParams = {}): Promise<SupplierLi
   return json;
 }
 
-export async function createSupplier(data: Omit<SupplierType , "id">): Promise<SupplierType > {
+export async function createSupplier(data: Partial<SupplierType>): Promise<SupplierType> {
   console.log("[suppliers-api] createSupplier payload", data);
   const res = await fetch("/api/admin/suppliers", {
     method: "POST",
@@ -69,13 +69,13 @@ export async function createSupplier(data: Omit<SupplierType , "id">): Promise<S
     throw new Error(txt || "Error creando proveedor");
   }
   const json = await res.json();
-  console.log("[suppliers-api] createSupplier ok", { id: json?.id });
-  return json;
+  console.log("[suppliers-api] createSupplier ok", { documentId: json?.data?.documentId });
+  return json?.data;
 }
 
-export async function updateSupplier(id: number, data: Partial<Omit<SupplierType , "id">>): Promise<SupplierType > {
-  console.log("[suppliers-api] updateSupplier payload", { id, data });
-  const res = await fetch(`/api/admin/suppliers/${id}`, {
+export async function updateSupplier(documentId: string, data: Partial<SupplierType>): Promise<SupplierType> {
+  console.log("[suppliers-api] updateSupplier payload", { documentId, data });
+  const res = await fetch(`/api/admin/suppliers/${documentId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -86,13 +86,13 @@ export async function updateSupplier(id: number, data: Partial<Omit<SupplierType
     throw new Error(txt || "Error actualizando proveedor");
   }
   const json = await res.json();
-  console.log("[suppliers-api] updateSupplier ok", { id: json?.id });
-  return json;
+  console.log("[suppliers-api] updateSupplier ok", { documentId: json?.data?.documentId });
+  return json?.data;
 }
 
-export async function deleteSupplier(id: number): Promise<{ ok: true }> {
-  console.log("[suppliers-api] deleteSupplier", { id });
-  const res = await fetch(`/api/admin/suppliers/${id}`, { method: "DELETE" });
+export async function deleteSupplier(documentId: string): Promise<{ ok: true }> {
+  console.log("[suppliers-api] deleteSupplier", { documentId });
+  const res = await fetch(`/api/admin/suppliers/${documentId}`, { method: "DELETE" })
   if (!res.ok) {
     const txt = await res.text();
     console.error("[suppliers-api] deleteSupplier error", res.status, txt);

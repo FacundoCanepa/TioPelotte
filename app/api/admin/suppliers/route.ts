@@ -1,105 +1,132 @@
+import type { SupplierType } from "@/types/supplier";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-import crypto from "crypto";
-import { SupplierType } from "@/types/supplier";
+import {
+  fetchActiveSupplierCount,
+  mapSupplierFromStrapi,
+  sanitizeSupplierPayload,
+  strapiFetch,
+} from "./strapi-helpers";
 
-const dataFilePath = path.join(process.cwd(), "data", "suppliers.json");
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-async function readData(): Promise<SupplierType[]> {
-  try {
-    const fileContent = await fs.readFile(dataFilePath, "utf-8");
-    return fileContent ? JSON.parse(fileContent) : [];
-  } catch (error) {
-    return [];
+function buildStrapiListURL(searchParams: URLSearchParams) {
+  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
+  const pageSize = Math.max(Number(searchParams.get("pageSize") ?? "10"), 1);
+  const q = (searchParams.get("q") ?? "").trim();
+  const active = searchParams.get("active");
+
+  const params = new URLSearchParams();
+  params.set("populate", "*");
+  params.set("pagination[page]", String(page));
+  params.set("pagination[pageSize]", String(pageSize));
+  params.set("sort[0]", "updatedAt:desc");
+
+  if (q) {
+    params.set("filters[name][$containsi]", q);
   }
+
+  if (active && active !== "all") {
+    const isActive = active === "true" || active === "active";
+    params.set("filters[active][$eq]", isActive ? "true" : "false");
+  }
+
+  return `/api/suppliers?${params.toString()}`;
 }
 
-async function writeData(data: SupplierType[]): Promise<void> {
-  await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
-  await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
-}
-
-function matchesActiveFilter(value: string | null, supplier: SupplierType) {
-  if (!value || value === "all") return true;
-  if (value === "active" || value === "true") return supplier.active;
-  if (value === "inactive" || value === "false") return !supplier.active;
-  return true;
-}
-
-// GET all suppliers with filtering and pagination
 export async function GET(req: NextRequest) {
   try {
-    const allSuppliers = await readData();
-    const { searchParams } = req.nextUrl;
+    const url = new URL(req.url);
+    const listPath = buildStrapiListURL(url.searchParams);
+    const res = await strapiFetch(listPath);
+    const json = (await res.json()) as Record<string, unknown>;
 
-    const search = (searchParams.get("q") || "").trim().toLowerCase();
-    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
-    const pageSize = Math.max(parseInt(searchParams.get("pageSize") || "10", 10), 1);
-    const activeFilter = searchParams.get("active");
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error listando proveedores", details: json },
+        { status: res.status || 500 }
+      );
+    }
 
-    const filteredSuppliers = allSuppliers.filter((supplier) => {
-      const nameMatch = search ? supplier.name.toLowerCase().includes(search) : true;
-      const activeMatch = matchesActiveFilter(activeFilter, supplier);
-      return nameMatch && activeMatch;
-    });
+    const dataField = json.data;
+    const dataArray = Array.isArray(dataField) ? dataField : [];
+    const items = dataArray
+      .map((entry) => mapSupplierFromStrapi(entry))
+      .filter((supplier): supplier is SupplierType => Boolean(supplier));
 
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedSuppliers = filteredSuppliers.slice(startIndex, endIndex);
+    const metaField = isRecord(json.meta) ? (json.meta as Record<string, unknown>) : {};
+    const paginationField = isRecord(metaField.pagination) ? (metaField.pagination as Record<string, unknown>) : {};
+    const pageSizeValue = Number(paginationField.pageSize) || items.length || 1;
+    const totalValue = Number(paginationField.total) || items.length;
+    const pageCountValue = Number(paginationField.pageCount) || Math.max(1, Math.ceil(totalValue / pageSizeValue));
 
-    const totalCount = allSuppliers.length;
-    const activeCount = allSuppliers.filter((s) => s.active).length;
-
-    return NextResponse.json({
-      items: paginatedSuppliers,
-      meta: {
-        pagination: {
-          page,
-          pageSize,
-          pageCount: Math.ceil(filteredSuppliers.length / pageSize) || 1,
-          total: filteredSuppliers.length,
-        },
+    const meta = {
+      pagination: {
+        page: Number(paginationField.page) || 1,
+        pageSize: pageSizeValue,
+        pageCount: pageCountValue,
+        total: totalValue,
       },
-      totalCount,
-      activeCount,
-    });
-  } catch (e: any) {
+    };
+
+    let activeCount = items.filter((supplier) => supplier.active === true).length;
+    try {
+      activeCount = await fetchActiveSupplierCount();
+    } catch (error) {
+      console.warn("[admin/suppliers][GET] usando activeCount local por error", error);
+    }
+
+    const totalCount = meta.pagination.total ?? items.length;
+
+    return NextResponse.json({ items, meta, totalCount, activeCount });
+  } catch (error) {
+    console.error("[admin/suppliers][GET] unexpected error", error);
     return NextResponse.json(
-      { error: "Internal error", details: e.message },
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
       { status: 500 }
     );
   }
 }
 
-// POST a new supplier
 export async function POST(req: NextRequest) {
   try {
-    const suppliers = await readData();
-    const newSupplierData = await req.json();
+    const body = (await req.json()) as unknown;
 
-    if (!newSupplierData.name) {
-      return NextResponse.json({ error: "El nombre es obligatorio" }, { status: 400 });
+    let sanitizedPayload: Record<string, unknown>;
+    try {
+      sanitizedPayload = sanitizeSupplierPayload(body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Datos inválidos";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const maxId = suppliers.length > 0 ? Math.max(...suppliers.map((s) => s.id || 0)) + 1 : 1;
+    const res = await strapiFetch("/api/suppliers", {
+      method: "POST",
+      body: JSON.stringify({ data: sanitizedPayload }),
+    });
+    const json = (await res.json()) as Record<string, unknown>;
 
-    const newSupplier: SupplierType = {
-      ...newSupplierData,
-      id: maxId,
-      documentId: crypto.randomUUID(),
-      active: newSupplierData.active !== undefined ? newSupplierData.active : true,
-      ingredientes: newSupplierData.ingredientes || [],
-      ingredient_supplier_prices: newSupplierData.ingredient_supplier_prices || [],
-    };
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error creando proveedor", details: json },
+        { status: res.status || 500 }
+      );
+    }
 
-    suppliers.push(newSupplier);
-    await writeData(suppliers);
+    const supplier = mapSupplierFromStrapi(json?.data);
+    if (!supplier) {
+      return NextResponse.json(
+        { error: "Respuesta inválida del servidor" },
+        { status: 502 }
+      );
+    }
 
-    return NextResponse.json({ data: newSupplier }, { status: 201 });
-  } catch (e: any) {
+    return NextResponse.json({ data: supplier }, { status: 201 });
+  } catch (error) {
+    console.error("[admin/suppliers][POST] unexpected error", error);
     return NextResponse.json(
-      { error: "Internal error", details: e.message },
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
       { status: 500 }
     );
   }

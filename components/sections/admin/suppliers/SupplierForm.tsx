@@ -65,10 +65,10 @@ export function SupplierForm({ form, setForm, onSave, onCancel, saving }: Suppli
           type="tel"
           value={form.phone ?? ""}
           onChange={(event) => {
-            const numericValue = event.target.value.replace(/[^0-9]/g, "");
+            const numericValue = event.target.value.replace(/[^0-9+]/g, "");
             setForm((prev) => ({
               ...prev,
-              phone: numericValue === "" ? undefined : Number(numericValue),
+              phone: numericValue,
             }));
           }}
           placeholder="Ej: 5491122334455"

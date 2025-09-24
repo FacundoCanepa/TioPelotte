@@ -1,80 +1,156 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  mapSupplierFromStrapi,
+  sanitizeSupplierPayload,
+  strapiFetch,
+} from "../strapi-helpers";
 
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import { SupplierType } from '@/types/supplier';
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-const dataFilePath = path.join(process.cwd(), 'data', 'suppliers.json');
-
-async function readData(): Promise<SupplierType[]> {
-  try {
-    const fileContent = await fs.readFile(dataFilePath, 'utf-8');
-    return fileContent ? JSON.parse(fileContent) : [];
-  } catch (error) {
-    return [];
+async function resolveDocumentId(context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  if (!id) {
+    throw new Error("Falta el identificador del proveedor");
   }
+  return id;
 }
 
-async function writeData(data: SupplierType[]): Promise<void> {
-  await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
-  await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
-}
-
-// Helper to transform supplier to Strapi-like findOne format
-function toFindOneFormat(supplier: SupplierType) {
-  const { id, ...attributes } = supplier;
-  return { id, attributes };
-}
-
-// GET a single supplier by documentId
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: documentId } = await context.params;
-
-  const suppliers = await readData();
-  const supplier = suppliers.find(s => s.documentId === documentId);
-
-  if (!supplier) {
-    return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
-  }
-
-  return NextResponse.json({ data: toFindOneFormat(supplier) });
-}
-
-// PATCH (update) an existing supplier by documentId
-export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: documentId } = await context.params;
-
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const suppliers = await readData();
-    const supplierIndex = suppliers.findIndex(s => s.documentId === documentId);
-
-    if (supplierIndex === -1) {
-      return NextResponse.json({ error: 'Proveedor no encontrado para actualizar' }, { status: 404 });
+    const documentId = await resolveDocumentId(context);
+    const url = new URL(req.url);
+    if (!url.searchParams.has("populate")) {
+      url.searchParams.set("populate", "*");
     }
 
-    const updatedData = await req.json();
-    suppliers[supplierIndex] = { ...suppliers[supplierIndex], ...updatedData };
-    
-    await writeData(suppliers);
+    const res = await strapiFetch(`/api/suppliers/${documentId}?${url.searchParams.toString()}`);
+    const json = (await res.json()) as Record<string, unknown>;
 
-    return NextResponse.json({ data: toFindOneFormat(suppliers[supplierIndex]) });
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Error al actualizar', details: e.message }, { status: 500 });
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error obteniendo proveedor", details: json },
+        { status: res.status || 500 }
+      );
+    }
+
+    const dataField = json.data ?? json;
+    const supplier = mapSupplierFromStrapi(dataField);
+    if (!supplier) {
+      return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: supplier });
+  } catch (error) {
+    console.error("[admin/suppliers/:id][GET] unexpected error", error);
+    return NextResponse.json(
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE a supplier by documentId
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id: documentId } = await context.params;
+async function updateSupplier(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const documentId = await resolveDocumentId(context);
+    const body = (await req.json()) as unknown;
 
-  const suppliers = await readData();
-  const updatedSuppliers = suppliers.filter(s => s.documentId !== documentId);
+    let sanitizedPayload: Record<string, unknown>;
+    try {
+      sanitizedPayload = sanitizeSupplierPayload(body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Datos inválidos";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
 
-  if (suppliers.length === updatedSuppliers.length) {
-    return NextResponse.json({ error: 'Proveedor no encontrado para eliminar' }, { status: 404 });
+    const res = await strapiFetch(`/api/suppliers/${documentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ data: sanitizedPayload }),
+    });
+
+    const text = await res.text();
+    let parsed: unknown = null;
+    if (text) {
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = text;
+      }
+    }
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error actualizando proveedor", details: parsed },
+        { status: res.status || 500 }
+      );
+    }
+
+    const supplier = mapSupplierFromStrapi(isRecord(parsed) && parsed.data ? parsed.data : parsed);
+    if (!supplier) {
+      return NextResponse.json({ error: "Proveedor no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: supplier });
+  } catch (error) {
+    console.error("[admin/suppliers/:id][UPDATE] unexpected error", error);
+    return NextResponse.json(
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
+      { status: 500 }
+    );
   }
+}
 
-  await writeData(updatedSuppliers);
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return updateSupplier(req, context);
+}
 
-  return new NextResponse(null, { status: 204 }); // No Content
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return updateSupplier(req, context);
+}
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const documentId = await resolveDocumentId(context);
+    const res = await strapiFetch(`/api/suppliers/${documentId}`, { method: "DELETE" });
+
+    if (!res.ok && res.status !== 204) {
+      const text = await res.text();
+      let parsed: unknown = null;
+      if (text) {
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = text;
+        }
+      }
+      return NextResponse.json(
+        { error: "Error eliminando proveedor", details: parsed },
+        { status: res.status || 500 }
+      );
+    }
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("[admin/suppliers/:id][DELETE] unexpected error", error);
+    return NextResponse.json(
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
+      { status: 500 }
+    );
+  }
 }

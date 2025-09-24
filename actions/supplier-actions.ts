@@ -1,8 +1,8 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { SupplierType } from '@/types/supplier';
+import { sanitizeSupplierPayload } from '@/app/api/admin/suppliers/strapi-helpers';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -21,29 +21,45 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function createSupplier(supplierData: Partial<SupplierType>): Promise<SupplierType> {
+  let sanitized: Record<string, unknown>;
+  try {
+    sanitized = sanitizeSupplierPayload({ data: supplierData });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Datos inválidos del proveedor';
+    throw new Error(message);
+  }
+
   const response = await fetch(`${API_URL}/api/suppliers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(supplierData),
+    body: JSON.stringify({ data: sanitized }),
   });
   const result = await handleResponse<ApiDataResponse<SupplierType>>(response);
   revalidatePath('/admin/suppliers');
   return result.data;
 }
 
-export async function updateSupplier(id: number, supplierData: Partial<SupplierType>): Promise<SupplierType> {
-  const response = await fetch(`${API_URL}/api/suppliers/${id}`, {
-    method: 'PATCH', // or 'PUT'
+export async function updateSupplier(documentId: string, supplierData: Partial<SupplierType>): Promise<SupplierType> {
+  let sanitized: Record<string, unknown>;
+  try {
+    sanitized = sanitizeSupplierPayload({ data: supplierData });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Datos inválidos del proveedor';
+    throw new Error(message);
+  }
+
+  const response = await fetch(`${API_URL}/api/suppliers/${documentId}`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(supplierData),
+    body: JSON.stringify({ data: sanitized }),
   });
   const result = await handleResponse<ApiDataResponse<SupplierType>>(response);
   revalidatePath('/admin/suppliers');
   return result.data;
 }
 
-export async function deleteSupplier(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/suppliers/${id}`, {
+export async function deleteSupplier(documentId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/suppliers/${documentId}`, {
     method: 'DELETE',
   });
   // A DELETE request might not return a JSON body, so we handle it differently
