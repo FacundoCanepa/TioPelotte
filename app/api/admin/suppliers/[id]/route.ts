@@ -9,7 +9,7 @@ const dataFilePath = path.join(process.cwd(), 'data', 'suppliers.json');
 async function readData(): Promise<SupplierType[]> {
   try {
     const fileContent = await fs.readFile(dataFilePath, 'utf-8');
-    return JSON.parse(fileContent);
+    return fileContent ? JSON.parse(fileContent) : [];
   } catch (error) {
     return [];
   }
@@ -17,6 +17,12 @@ async function readData(): Promise<SupplierType[]> {
 
 async function writeData(data: SupplierType[]): Promise<void> {
   await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2));
+}
+
+// Helper to transform supplier to Strapi-like findOne format
+function toFindOneFormat(supplier: SupplierType) {
+  const { id, ...attributes } = supplier;
+  return { id, attributes };
 }
 
 // GET a single supplier by documentId
@@ -30,7 +36,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Proveedor no encontrado' }, { status: 404 });
   }
 
-  return NextResponse.json({ data: supplier });
+  return NextResponse.json({ data: toFindOneFormat(supplier) });
 }
 
 // PATCH (update) an existing supplier by documentId
@@ -50,7 +56,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     
     await writeData(suppliers);
 
-    return NextResponse.json({ data: suppliers[supplierIndex] });
+    return NextResponse.json({ data: toFindOneFormat(suppliers[supplierIndex]) });
   } catch (e: any) {
     return NextResponse.json({ error: 'Error al actualizar', details: e.message }, { status: 500 });
   }

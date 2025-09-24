@@ -23,32 +23,39 @@ async function writeData(data: SupplierType[]): Promise<void> {
 // GET all suppliers with filtering and pagination
 export async function GET(req: NextRequest) {
   try {
-    const suppliers = await readData();
+    const allSuppliers = await readData();
     const { searchParams } = req.nextUrl;
 
-    const search = searchParams.get('search') || '';
+    const search = searchParams.get('q') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
+    const activeFilter = searchParams.get('active');
 
-    // 1. Filter by search query
-    const filteredSuppliers = suppliers.filter(supplier => 
-      supplier.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredSuppliers = allSuppliers.filter(supplier => {
+      const nameMatch = search ? supplier.name.toLowerCase().includes(search.toLowerCase()) : true;
+      let activeMatch = true;
+      if (activeFilter && activeFilter !== 'all') {
+        activeMatch = String(supplier.active) === activeFilter;
+      }
+      return nameMatch && activeMatch;
+    });
 
-    // 2. Paginate the results
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = page * pageSize;
     const paginatedSuppliers = filteredSuppliers.slice(startIndex, endIndex);
 
-    // 3. Construct the response
+    // Return response in Strapi-like format
     return NextResponse.json({
-      items: paginatedSuppliers,
+      data: paginatedSuppliers,
       meta: {
         pagination: {
+          page: page,
+          pageSize: pageSize,
+          pageCount: Math.ceil(filteredSuppliers.length / pageSize),
           total: filteredSuppliers.length,
-          page,
-          limit,
         },
+        totalCount: allSuppliers.length,
+        activeCount: allSuppliers.filter(s => s.active).length,
       },
     });
   } catch (e: any) {
@@ -79,6 +86,7 @@ export async function POST(req: NextRequest) {
     suppliers.push(newSupplier);
     await writeData(suppliers);
 
+    // Return response in Strapi-like format
     return NextResponse.json({ data: newSupplier }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: 'Internal error', details: e.message }, { status: 500 });
