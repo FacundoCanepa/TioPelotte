@@ -1,8 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'; // Import the shared prisma instance
 
 // GET all suppliers with pagination and search
 export async function GET(req: NextRequest) {
