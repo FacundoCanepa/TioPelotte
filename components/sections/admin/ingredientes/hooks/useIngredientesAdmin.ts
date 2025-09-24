@@ -1,173 +1,139 @@
-"use client";
+// Vercel, please refresh this file! Cache invalidation attempt: 2024-07-16T22:15:00Z
+'use client';
 
-import { useEffect, useState } from "react";
-import { IngredientType } from "@/types/ingredient";
-import { toast } from "sonner";
-import { generateSlug } from "@/lib/utils";
+import { useEffect, useState } from 'react';
+import { IngredientType } from '@/types/ingredient';
+import { toast } from 'sonner';
+import { generateSlug } from '@/lib/utils';
+import { useGetIngredients } from '@/components/hooks/useGetIngredients';
 
 export function useIngredientesAdmin() {
-  const [ingredientes, setIngredientes] = useState<IngredientType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError, refetch } = useGetIngredients();
 
-  const [search, setSearch] = useState("");
-  const [filterUnidad, setFilterUnidad] = useState("all");
+  const [search, setSearch] = useState('');
+  const [filterUnidad, setFilterUnidad] = useState('all');
   const [filterLowStock, setFilterLowStock] = useState(false);
 
   const [orderBy, setOrderBy] = useState({
-    field: "nombre",
-    direction: "asc" as "asc" | "desc",
+    field: 'ingredienteName' as keyof IngredientType,
+    direction: 'asc' as 'asc' | 'desc',
   });
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<any>({
-    nombre: "",
+  const [form, setForm] = useState<Partial<IngredientType>>({
+    ingredienteName: '',
     stock: 0,
-    unidadMedida: "kg",
+    unidadMedida: 'kg',
     precio: 0,
   });
 
-  const unidades = ["kg", "planchas", "unidad"];
-
-const fetchIngredientes = async () => {
-  try {
-    const res = await fetch("/api/admin/ingredients");
-    const json = await res.json();
-
-    const data = Array.isArray(json.data) ? json.data : [];
-
-    const ingredientes = data.map((i: any) => ({
-      id: i.id,
-      documentId: i.documentId,
-      nombre: i.ingredienteName,
-      stock: i.Stock,
-      unidadMedida: i.unidadMedida,
-      precio: i.precio,
-      stockUpdatedAt: i.stockUpdatedAt,
-    }));
-
-    console.log("📦 Ingredientes cargados:", ingredientes); // 👈 LOG IMPORTANTE
-
-    setIngredientes(ingredientes);
-  } catch (error) {
-    console.error("❌ Error cargando ingredientes:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
-  useEffect(() => {
-    fetchIngredientes();
-  }, []);
+  const unidades = ['kg', 'planchas', 'unidad'];
 
   const saveIngrediente = async () => {
+    if (!form.ingredienteName) {
+      toast.error('El nombre del ingrediente no puede estar vacío');
+      return;
+    }
+
     try {
       const isNew = !form.id;
 
       const payload = {
-        ingredienteName: form.nombre,
-        Stock: form.stock,
+        ingredienteName: form.ingredienteName,
+        stock: form.stock,
         unidadMedida: form.unidadMedida,
         precio: form.precio,
-        documentId: isNew ? generateSlug(form.nombre) : form.documentId,
+        documentId: isNew ? generateSlug(form.ingredienteName) : form.documentId,
       };
 
-      console.log("📝 Guardando ingrediente:", payload);
-
-      const url = isNew
-        ? "/api/admin/ingredients"
-        : `/api/admin/ingredients/${form.documentId}`;
-      const method = isNew ? "POST" : "PUT";
+      const url = isNew ? '/api/admin/ingredients' : `/api/admin/ingredients/${form.documentId}`;
+      const method = isNew ? 'POST' : 'PUT';
 
       const res = await fetch(url, {
         method,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Error al guardar");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error al guardar');
+      }
 
-      toast.success(isNew ? "Ingrediente creado" : "Ingrediente editado");
+      toast.success(isNew ? 'Ingrediente creado' : 'Ingrediente editado');
       setShowForm(false);
-      fetchIngredientes();
-    } catch (error) {
-      console.error("❌ Error al guardar ingrediente:", error);
-      toast.error("Error al guardar ingrediente");
+      refetch();
+    } catch (error: any) {
+      console.error('❌ Error al guardar ingrediente:', error);
+      toast.error(error.message || 'Error al guardar ingrediente');
     }
   };
 
   const deleteIngrediente = async (documentId: string) => {
     try {
-     console.log("🗑️ Eliminando ingrediente con documentId:", documentId);
-
       const res = await fetch(`/api/admin/ingredients/${documentId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
-      if (!res.ok) throw new Error("Error al eliminar");
+      if (!res.ok) throw new Error('Error al eliminar');
 
-      toast.success("Ingrediente eliminado");
-      fetchIngredientes();
+      toast.success('Ingrediente eliminado');
+      refetch();
     } catch (error) {
-      console.error("❌ Error al eliminar:", error);
-      toast.error("Error al eliminar");
+      console.error('❌ Error al eliminar:', error);
+      toast.error('Error al eliminar');
     }
   };
 
-const editIngrediente = (i: IngredientType) => {
-  console.log("✏️ Editando ingrediente:", i);
-
-  setForm({
-    id: i.id,
-    nombre: i.nombre,
-    stock: i.stock,
-    unidadMedida: i.unidadMedida,
-    precio: i.precio,
-    documentId: i.documentId,
-  });
-
-  setShowForm(true);
-};
-
+  const editIngrediente = (i: IngredientType) => {
+    setForm({
+      id: i.id,
+      ingredienteName: i.ingredienteName,
+      stock: i.stock,
+      unidadMedida: i.unidadMedida,
+      precio: i.precio,
+      documentId: i.documentId,
+    });
+    setShowForm(true);
+  };
 
   const startNew = () => {
-    console.log("➕ Nuevo ingrediente");
     setForm({
-      nombre: "",
+      ingredienteName: '',
       stock: 0,
-      unidadMedida: "kg",
+      unidadMedida: 'kg',
       precio: 0,
     });
     setShowForm(true);
   };
 
+  const ingredientes = data?.items || [];
+
+  const filteredAndSortedIngredientes = ingredientes
+    .filter(i => i.ingredienteName?.toLowerCase().includes(search.toLowerCase()))
+    .filter(i => (filterUnidad === 'all' ? true : i.unidadMedida === filterUnidad))
+    .filter(i => (filterLowStock ? i.stock <= 5 : true))
+    .sort((a, b) => {
+      const field = orderBy.field;
+      const dir = orderBy.direction === 'asc' ? 1 : -1;
+      const aValue = a[field];
+      const bValue = b[field];
+
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1 * dir;
+      if (bValue == null) return -1 * dir;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return (aValue - bValue) * dir;
+      }
+
+      return String(aValue).localeCompare(String(bValue)) * dir;
+    });
+
   return {
-    ingredientes: ingredientes
-      .filter((i) =>
-        i.nombre.toLowerCase().includes(search.toLowerCase())
-      )
-      .filter((i) => (filterUnidad === "all" ? true : i.unidadMedida === filterUnidad))
-      .filter((i) => (filterLowStock ? i.stock <= 5 : true))
-      .sort((a, b) => {
-         const field = orderBy.field as keyof IngredientType;
-        const dir = orderBy.direction === "asc" ? 1 : -1;
-        const aValue = a[field];
-        const bValue = b[field];
-
-        if (aValue == null && bValue == null) return 0;
-        if (aValue == null) return 1 * dir;
-        if (bValue == null) return -1 * dir;
-
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          if (aValue > bValue) return dir;
-          if (aValue < bValue) return -dir;
-          return 0;
-        }
-
-        return String(aValue).localeCompare(String(bValue)) * dir;
-      }),
-
-    loading,
+    ingredientes: filteredAndSortedIngredientes,
+    loading: isLoading,
+    error: isError,
     search,
     setSearch,
     filterUnidad,
