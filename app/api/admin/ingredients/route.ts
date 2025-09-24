@@ -23,7 +23,7 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
   const page = Number(searchParams.get("page") || "1");
   const pageSize = Number(searchParams.get("pageSize") || "50");
   const q = (searchParams.get("q") || "").trim();
-
+  const categoryId = (searchParams.get("categoryId") || "").trim();
   const sp = new URLSearchParams();
 
   sp.set("populate", "*");
@@ -32,6 +32,10 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
     sp.set("filters[ingredienteName][$containsi]", q);
   }
 
+  
+  if (categoryId) {
+    sp.set("filters[categoria_ingrediente][id][$eq]", categoryId);
+  }
   sp.set("pagination[page]", String(page));
   sp.set("pagination[pageSize]", String(pageSize));
   sp.set("sort[0]", "updatedAt:desc");
