@@ -2,6 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 import { IngredientType } from "@/types/ingredient";
 import { mapIngredientFromStrapi, strapiFetch } from "../suppliers/strapi-helpers";
 
+type RelationInput =
+  | number
+  | string
+  | {
+      id?: number | string | null;
+      documentId?: string | null;
+    }
+  | null
+  | undefined;
+
+function buildSingleRelation(value: RelationInput) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const numericValue = Number(trimmed);
+    if (!Number.isNaN(numericValue)) {
+      return numericValue;
+    }
+
+    return { connect: [{ documentId: trimmed }] };
+  }
+
+  if (typeof value === "object") {
+    if (value.id !== undefined && value.id !== null) {
+      return buildSingleRelation(value.id as RelationInput);
+    }
+
+    if (value.documentId) {
+      return { connect: [{ documentId: value.documentId }] };
+    }
+  }
+
+  return undefined;
+}
+
 // Helper to build the Strapi URL for listing ingredients
 function buildStrapiListURL(searchParams: URLSearchParams) {
   const page = Number(searchParams.get("page") || "1");
@@ -148,8 +198,8 @@ export async function POST(req: NextRequest) {
       ingredienteName: body.ingredienteName,
       Stock: body.Stock,
       unidadMedida: body.unidadMedida,
-      categoria_ingrediente: body.categoria_ingrediente,
-      supplier: body.supplier,
+      categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente),
+      supplier: buildSingleRelation(body.supplier),
       precio: body.precio,
     };
 
@@ -165,8 +215,8 @@ export async function POST(req: NextRequest) {
       currency: "ARS",
       unit: body.unidadMedida,
       ingrediente: newIngredientId,
-      supplier: body.supplier,
-      categoria_ingrediente: body.categoria_ingrediente, // This was the missing field
+      supplier: buildSingleRelation(body.supplier),
+      categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente), // This was the missing field
     };
 
     await createIngredientSupplierPrice(priceData);
