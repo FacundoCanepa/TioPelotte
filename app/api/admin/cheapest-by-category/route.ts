@@ -96,8 +96,8 @@ async function fetchIngredientsByCategory(filter: CategoryFilter): Promise<Ingre
 
 async function fetchPricesByCategory(filter: CategoryFilter): Promise<IngredientSupplierPrice[]> {
   const params = new URLSearchParams();
-  params.set("populate[ingrediente][populate][0]", "categoria_ingrediente");
-  params.set("populate[supplier]", "*");
+  params.set("populate[ingrediente][populate]", "categoria_ingrediente");
+  params.set("populate[supplier]", "true");
   params.set("pagination[page]", "1");
   params.set("pagination[pageSize]", DEFAULT_PAGE_SIZE);
 
