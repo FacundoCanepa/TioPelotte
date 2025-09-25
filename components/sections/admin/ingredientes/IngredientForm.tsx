@@ -16,7 +16,7 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
   const unidades = ['kg', 'planchas', 'unidad'];
   const { data: suppliers, isLoading: isLoadingSuppliers } = useGetSuppliers();
   const { data: categories, isLoading: isLoadingCategories } = useGetIngredientCategories();
-
+  const categoryItems: Category[] = Array.isArray(categories) ? categories : categories?.items ?? [];
   return (
     <div className="bg-white p-4 rounded-xl shadow space-y-4 max-w-md">
       <div className="space-y-1">
@@ -71,15 +71,14 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
         <select
           value={form.categoria_ingrediente?.id || ''}
           onChange={e =>
-            setForm({ ...form, categoria_ingrediente: categories?.items.find((c: Category) => c.id === Number(e.target.value)) })
-          }
+            setForm({ ...form, categoria_ingrediente: categoryItems.find((c: Category) => c.id === Number(e.target.value)) })          }
           className="border p-2 rounded w-full"
           disabled={isLoadingCategories}
         >
           <option value="" disabled>
             Seleccionar categoría
           </option>
-          {categories?.items.map((c: Category) => (
+          {categoryItems.map((c: Category) => (
             <option key={c.id} value={c.id}>
               {c.nombre}
             </option>
