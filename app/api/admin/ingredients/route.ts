@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     const strapiResponse = await response.json();
-    const rawItems = Array.isArray(strapiResponse?.data)
+    const rawItems: unknown[] = Array.isArray(strapiResponse?.data)
     ? strapiResponse.data
     : [];
   const items = rawItems
