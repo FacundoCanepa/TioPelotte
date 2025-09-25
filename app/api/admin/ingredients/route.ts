@@ -1,24 +1,7 @@
-
 import { NextRequest, NextResponse } from "next/server";
+import { strapiFetch } from "../suppliers/strapi-helpers";
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_BACKEND_URL!;
-const STRAPI_TOKEN = process.env.STRAPI_ADMIN_TOKEN || process.env.STRAPI_API_TOKEN;
-
-async function strapiFetch(path: string, init?: RequestInit) {
-  const url = `${STRAPI_URL}${path}`;
-  const method = init?.method || "GET";
-  const headers = new Headers(init?.headers);
-  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (STRAPI_TOKEN) headers.set("Authorization", `Bearer ${STRAPI_TOKEN}`);
-  try {
-    const res = await fetch(url, { ...init, headers, cache: "no-store" });
-    return res;
-  } catch (e) {
-    console.error("[admin/ingredients][strapiFetch] error", e);
-    throw e;
-  }
-}
-
+// Helper to build the Strapi URL for listing ingredients
 function buildStrapiListURL(searchParams: URLSearchParams) {
   const page = Number(searchParams.get("page") || "1");
   const pageSize = Number(searchParams.get("pageSize") || "50");
@@ -27,15 +10,15 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
   const sp = new URLSearchParams();
 
   sp.set("populate", "*");
-  
+
   if (q) {
     sp.set("filters[ingredienteName][$containsi]", q);
   }
 
-  
   if (categoryId) {
     sp.set("filters[categoria_ingrediente][id][$eq]", categoryId);
   }
+
   sp.set("pagination[page]", String(page));
   sp.set("pagination[pageSize]", String(pageSize));
   sp.set("sort[0]", "updatedAt:desc");
@@ -43,47 +26,118 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
   return `/api/ingredientes?${sp.toString()}`;
 }
 
-function mapIngredientFromStrapi(s: any) {
-  if (!s) return null;
-  const { id, attributes } = s;
-  if (!id || !attributes) return s; // Fallback for flat structure
-  return {
-    id: id,
-    ingredienteName: attributes.ingredienteName,
-    stock: attributes.stock,
-    unidadMedida: attributes.unidadMedida,
-    precio: attributes.precio,
-    stockUpdatedAt: attributes.stockUpdatedAt,
-  };
-}
-
-export async function GET(req: Request) {
+// GET request handler to fetch ingredients
+export async function GET(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const listUrl = buildStrapiListURL(url.searchParams);
-    const res = await strapiFetch(listUrl);
-    const json = await res.json();
-    if (!res.ok) {
+    const strapiUrl = buildStrapiListURL(req.nextUrl.searchParams);
+    const response = await strapiFetch(strapiUrl);
+
+    if (!response.ok) {
+      const errorBody = await response
+        .json()
+        .catch(() => ({ message: "Invalid JSON response from Strapi" }));
+      console.error("[INGREDIENTS_GET] Strapi Error:", {
+        status: response.status,
+        body: errorBody,
+      });
       return NextResponse.json(
-        { error: "Error listando ingredientes", details: json },
-        { status: res.status || 500 }
+        {
+          ok: false,
+          message:
+            errorBody?.error?.message ||
+            "Error fetching ingredients from Strapi",
+        },
+        { status: response.status }
       );
     }
 
-    const data = Array.isArray(json.data) ? json.data : [];
-    const items = data.map(mapIngredientFromStrapi).filter(Boolean);
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("[INGREDIENTS_GET] Internal Error:", error);
+    return NextResponse.json(
+      { ok: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
-    const meta = json.meta ?? { pagination: { page: 1, pageSize: items.length, total: items.length, pageCount: 1 } };
+// Helper to create an ingredient in Strapi
+async function createIngredient(data: any) {
+  const res = await strapiFetch("/api/ingredientes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data }),
+  });
+  const responseBody = await res.json();
+  if (!res.ok) {
+    console.error("Strapi [createIngredient] error:", responseBody);
+    throw new Error(
+      responseBody?.error?.message || "Failed to create ingredient in Strapi."
+    );
+  }
+  return responseBody;
+}
 
-    const payload = {
-      items,
-      meta,
-      totalCount: meta?.pagination?.total ?? items.length,
+// Helper to create an ingredient price in Strapi
+async function createIngredientSupplierPrice(data: any) {
+  const res = await strapiFetch("/api/ingredient-supplier-prices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data }),
+  });
+  const responseBody = await res.json();
+  if (!res.ok) {
+    console.error(
+      "Strapi [createIngredientSupplierPrice] error:",
+      responseBody
+    );
+    throw new Error(
+      responseBody?.error?.message ||
+        "Failed to create ingredient price in Strapi."
+    );
+  }
+  return responseBody;
+}
+
+// POST request handler to create an ingredient and its price
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+
+    const ingredientData = {
+      ingredienteName: body.ingredienteName,
+      Stock: body.Stock,
+      unidadMedida: body.unidadMedida,
+      categoria_ingrediente: body.categoria_ingrediente,
+      supplier: body.supplier,
+      precio: body.precio,
     };
 
-    return NextResponse.json(payload);
-  } catch (e: any) {
-    console.log("[admin/ingredients][GET] unexpected error:", e);
-    return NextResponse.json({ error: "Error inesperado", details: String(e) }, { status: 500 });
+    const createdIngredientResponse = await createIngredient(ingredientData);
+    const newIngredientId = createdIngredientResponse?.data?.id;
+
+    if (!newIngredientId) {
+      throw new Error("Ingredient creation did not return a valid ID.");
+    }
+
+    const priceData = {
+      unitPrice: body.precio,
+      currency: "ARS",
+      unit: body.unidadMedida,
+      ingrediente: newIngredientId,
+      supplier: body.supplier,
+      categoria_ingrediente: body.categoria_ingrediente, // This was the missing field
+    };
+
+    await createIngredientSupplierPrice(priceData);
+
+    return NextResponse.json({ ok: true, data: createdIngredientResponse.data });
+  } catch (error: any) {
+    console.error("[INGREDIENTS_POST] Internal Error:", error);
+    return NextResponse.json(
+      { ok: false, message: error.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
