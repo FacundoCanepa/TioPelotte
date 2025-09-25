@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, ShoppingCart, Package, Users, Utensils, DollarSign, Truck, Wheat  } from 'lucide-react';
+import { Home, ShoppingCart, Package, Users, Utensils, DollarSign, Truck, Wheat, Tags } from 'lucide-react';
 
 export function Sidebar() {
   return (
@@ -20,6 +20,10 @@ export function Sidebar() {
         <Link href="/admin/ingredientes" className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
           <Wheat size={20} />
           <span>ingredientes</span>
+        </Link>
+        <Link href="/admin/categoria_ingrediente" className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
+          <Tags size={20} />
+          <span>Categorías</span>
         </Link>
         <Link href="/admin/recetas" className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
           <Utensils size={20} />

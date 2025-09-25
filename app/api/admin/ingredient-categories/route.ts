@@ -1,54 +1,7 @@
-import type { Category } from "@/types/categoria_ingrediente";
-import { NextResponse } from "next/server";
-import {
-  mapCategoryFromStrapi,
-  mapIngredientFromStrapi,
-  mapPriceFromStrapi,
-  strapiFetch,
-} from "../suppliers/strapi-helpers";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function extractRelationArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (isRecord(value) && Array.isArray(value.data)) return value.data;
-  return [];
-}
-
-function mapCategoryWithRelations(entry: unknown): Category | null {
-  const base = mapCategoryFromStrapi(entry);
-  if (!base) return null;
-
-  const normalized = isRecord(entry) ? (entry as Record<string, unknown>) : null;
-  const attributes: Record<string, unknown> =
-    normalized && isRecord(normalized.attributes)
-      ? (normalized.attributes as Record<string, unknown>)
-      : normalized ?? {};
-
-  const normalizedRecord = normalized as Record<string, unknown> | null;
-
-  const ingredientesSource =
-    attributes["ingredientes"] ?? normalizedRecord?.["ingredientes"];
-  const ingredientesRaw = extractRelationArray(ingredientesSource);
-  const ingredientes = ingredientesRaw
-    .map((item) => mapIngredientFromStrapi(item))
-    .filter((item): item is NonNullable<ReturnType<typeof mapIngredientFromStrapi>> => Boolean(item));
-
-  const pricesSource =
-    attributes["ingredient_supplier_prices"] ?? normalizedRecord?.["ingredient_supplier_prices"];
-  const ingredientSupplierPricesRaw = extractRelationArray(pricesSource);
-  const ingredient_supplier_prices = ingredientSupplierPricesRaw
-    .map((item) => mapPriceFromStrapi(item))
-    .filter((item): item is NonNullable<ReturnType<typeof mapPriceFromStrapi>> => Boolean(item));
-
-  return {
-    ...base,
-    ingredientes,
-    ingredient_supplier_prices,
-  };
-}
+import { NextRequest, NextResponse } from "next/server";
+import { generateSlug } from "@/lib/utils";
+import { strapiFetch } from "../suppliers/strapi-helpers";
+import { isRecord, mapCategoryWithRelations } from "./utils";
 
 export async function GET() {
   try {
@@ -76,11 +29,96 @@ export async function GET() {
 
     const categories = dataArray
       .map((entry) => mapCategoryWithRelations(entry))
-      .filter((category): category is Category => Boolean(category));
+      .filter((category): category is NonNullable<ReturnType<typeof mapCategoryWithRelations>> =>
+        Boolean(category)
+      );
 
     return NextResponse.json(categories);
   } catch (error) {
     console.error("[admin/ingredient-categories][GET] unexpected error", error);
+    return NextResponse.json(
+      { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
+      { status: 500 }
+    );
+  }
+}
+
+function sanitizeCategoryPayload(body: unknown) {
+  if (!isRecord(body)) {
+    throw new Error("Datos inválidos");
+  }
+
+  const nombreValue = body.nombre;
+  const descriptionValue = body.description;
+
+  const nombre = typeof nombreValue === "string" ? nombreValue.trim() : "";
+  if (!nombre) {
+    throw new Error("El nombre es obligatorio");
+  }
+
+  const description =
+    typeof descriptionValue === "string" ? descriptionValue.trim() : undefined;
+
+  const payload: Record<string, unknown> = {
+    nombre,
+    documentId: generateSlug(nombre),
+  };
+
+  payload.description = description && description.length > 0 ? description : null;
+
+  return payload;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Datos inválidos", details: "JSON inválido" },
+        { status: 400 }
+      );
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = sanitizeCategoryPayload(body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Datos inválidos";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const res = await strapiFetch("/api/categoria-ingredientes", {
+      method: "POST",
+      body: JSON.stringify({ data: payload }),
+    });
+
+    let json: unknown = null;
+    try {
+      json = await res.json();
+    } catch (error) {
+      console.error("[admin/ingredient-categories][POST] parse error", error);
+    }
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Error creando categoría", details: json },
+        { status: res.status || 500 }
+      );
+    }
+
+    const category = mapCategoryWithRelations(isRecord(json) ? (json as Record<string, unknown>).data : json);
+    if (!category) {
+      return NextResponse.json(
+        { error: "Respuesta inválida del servidor" },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ data: category }, { status: 201 });
+  } catch (error) {
+    console.error("[admin/ingredient-categories][POST] unexpected error", error);
     return NextResponse.json(
       { error: "Error inesperado", details: String(error instanceof Error ? error.message : error) },
       { status: 500 }
