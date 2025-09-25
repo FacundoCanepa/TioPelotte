@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Loader2, PackageOpen, X } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Loader2, PackageOpen, X } from 'lucide-react';
 
 import type { CheapestByCategoryItem } from '@/lib/pricing/cheapest-by-category';
 import type { IngredientType } from '@/types/ingredient';
@@ -13,6 +13,7 @@ type IngredientPricesModalProps = {
 };
 
 type RequestState = 'idle' | 'loading' | 'success' | 'error';
+type SortDirection = 'asc' | 'desc' | null;
 
 function getIngredientIdentifier(ingredient: IngredientType | null) {
   if (!ingredient) return '';
@@ -52,6 +53,7 @@ export function IngredientPricesModal({
   const [state, setState] = useState<RequestState>('idle');
   const [comparisons, setComparisons] = useState<CheapestByCategoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   const ingredientIdentifier = useMemo(
     () => getIngredientIdentifier(ingredient),
@@ -63,6 +65,7 @@ export function IngredientPricesModal({
       setState('idle');
       setComparisons([]);
       setError(null);
+      setSortDirection(null);
       return;
     }
 
@@ -133,15 +136,42 @@ export function IngredientPricesModal({
     };
   }, [ingredient, ingredientIdentifier, open]);
 
-  const sortedComparisons = useMemo(() => {
-    return [...comparisons].sort((a, b) => {
-      const nameA = a.ingredientName?.toLocaleLowerCase?.() ?? '';
-      const nameB = b.ingredientName?.toLocaleLowerCase?.() ?? '';
-      if (nameA < nameB) return -1;
-      if (nameA > nameB) return 1;
-      return 0;
-    });
+  const cheapestItem = useMemo(() => {
+    const pricedItems = comparisons.filter((item) => item.cheapest !== null);
+    if (pricedItems.length === 0) return null;
+
+    return pricedItems.reduce((min, current) =>
+      current.cheapest!.price < min.cheapest!.price ? current : min
+    );
   }, [comparisons]);
+
+  const sortedComparisons = useMemo(() => {
+    let sorted = [...comparisons];
+    if (sortDirection) {
+      sorted.sort((a, b) => {
+        const priceA = a.cheapest?.price ?? Infinity;
+        const priceB = b.cheapest?.price ?? Infinity;
+        return sortDirection === 'asc' ? priceA - priceB : priceB - priceA;
+      });
+    } else {
+      sorted.sort((a, b) => {
+        const nameA = a.ingredientName?.toLocaleLowerCase?.() ?? '';
+        const nameB = b.ingredientName?.toLocaleLowerCase?.() ?? '';
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+    }
+    return sorted;
+  }, [comparisons, sortDirection]);
+
+  const handleSortByPrice = () => {
+    setSortDirection((current) => {
+      if (current === null) return 'asc';
+      if (current === 'asc') return 'desc';
+      return null;
+    });
+  };
 
   const selectedIngredientId = ingredient?.id ?? null;
 
@@ -156,7 +186,6 @@ export function IngredientPricesModal({
       return <span className="text-sm text-[#7C5F39]">Sin precio</span>;
     }
 
-    const supplierName = summary.supplierName?.trim() || 'Proveedor s/n';
     const unit = summary.unit?.trim() || fallbackUnit || 'unidad';
     const currency = summary.currency?.trim() || 'ARS';
     const priceLabel = `${formatCurrency(summary.price, currency)} / ${unit}`;
@@ -164,7 +193,6 @@ export function IngredientPricesModal({
     return (
       <div className="flex flex-col gap-0.5">
         <span className="font-semibold text-[#4A2E15]">{priceLabel}</span>
-        <span className="text-xs text-gray-500">{supplierName}</span>
         {summary.validFrom ? (
           <span className="text-xs text-gray-500">
             Vigente desde {formatDate(summary.validFrom)}
@@ -255,13 +283,25 @@ export function IngredientPricesModal({
                       <tr>
                         <th className="p-3">Ingrediente</th>
                         <th className="p-3">Proveedor</th>
-                        <th className="p-3">Precio</th>
+                        <th
+                          className="p-3 transition-colors hover:bg-opacity-80"
+                          onClick={handleSortByPrice}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>Precio</span>
+                            {sortDirection === 'asc' && <ChevronUp className="h-4 w-4" />}
+                            {sortDirection === 'desc' && <ChevronDown className="h-4 w-4" />}
+                          </div>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F0E4D4]">
                       {sortedComparisons.map((item) => {
                         const isSelected =
                           item.ingredientId === selectedIngredientId;
+                        const isCheapest =
+                          item.ingredientId === cheapestItem?.ingredientId;
 
                         return (
                           <tr
@@ -278,6 +318,11 @@ export function IngredientPricesModal({
                                 {isSelected && (
                                   <span className="rounded-full bg-[#EADBC8] px-2 py-0.5 text-xs font-semibold text-[#5A3E1B]">
                                     Seleccionado
+                                  </span>
+                                )}
+                                {isCheapest && (
+                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                                    Más barato
                                   </span>
                                 )}
                               </div>
