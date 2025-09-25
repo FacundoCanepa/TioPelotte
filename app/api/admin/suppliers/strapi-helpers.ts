@@ -325,6 +325,12 @@ function mapPriceInternal(
     validFrom: typeof attributes.validFrom === "string" ? attributes.validFrom : "",
     categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category),
   };
+  if (!base.unit || base.unit.trim() === "") {
+    const fallbackUnit = base.ingrediente?.unidadMedida?.trim?.();
+    if (fallbackUnit) {
+      base.unit = fallbackUnit;
+    }
+  }
   return categoria_ingrediente ? { ...base, categoria_ingrediente } : base;
 }
 

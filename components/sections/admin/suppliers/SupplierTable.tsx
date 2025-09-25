@@ -26,7 +26,11 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
     return parsed.toLocaleDateString("es-AR");
   };
 
-  const formatUnitPrice = (unitPrice?: number | null, currency?: string | null, unit?: string | null) => {
+  const formatUnitPrice = (
+    unitPrice?: number | null,
+    currency?: string | null,
+    unit?: string | null
+  ) => {
     if (typeof unitPrice !== "number" || Number.isNaN(unitPrice)) {
       return "N/D";
     }
@@ -37,7 +41,8 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
     });
 
     const currencyPrefix = currency ?? "$";
-    const unitSuffix = unit ? `/${unit}` : "";
+    const normalizedUnit = unit?.trim?.() ?? "";
+    const unitSuffix = normalizedUnit ? `/${normalizedUnit}` : "";
 
     return `${currencyPrefix} ${formattedPrice}${unitSuffix}`;
   };
@@ -175,7 +180,13 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
                                 >
                                   <td className="px-2 py-1">{ingredientName}</td>
                                   <td className="px-2 py-1">
-                                    {formatUnitPrice(price.unitPrice, price.currency, price.unit)}
+                                  {formatUnitPrice(
+                                      price.unitPrice,
+                                      price.currency,
+                                      price.unit?.trim?.() ||
+                                        price.ingrediente?.unidadMedida?.trim?.() ||
+                                        ""
+                                    )}
                                   </td>
                                   <td className="px-2 py-1">{formatDate(price.validFrom)}</td>
                                   <td className="px-2 py-1">{formatMinOrderQty(price.minOrderQty)}</td>

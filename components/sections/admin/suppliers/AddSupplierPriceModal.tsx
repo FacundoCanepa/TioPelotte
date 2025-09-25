@@ -78,19 +78,7 @@ export function AddSupplierPriceModal({
     return category == null;
   }, [selectedIngredient]);
 
-  const unitOptions = useMemo(() => {
-    const ingredientUnits = ingredientOptions
-      .map((ingredient) => normalizeUnit(ingredient.unidadMedida))
-      .filter(Boolean);
 
-    const priceUnits = (supplier?.ingredient_supplier_prices ?? [])
-      .map((price) => normalizeUnit(price.unit))
-      .filter(Boolean);
-
-    const fallbackUnits = ["kg", "unidad", "planchas"];
-
-    return Array.from(new Set([...ingredientUnits, ...priceUnits, ...fallbackUnits]));
-  }, [ingredientOptions, supplier?.ingredient_supplier_prices]);
 
   useEffect(() => {
     if (!open || !supplier) {
@@ -100,23 +88,49 @@ export function AddSupplierPriceModal({
     }
 
     setForm((prev) => {
-      const base = { ...DEFAULT_FORM, currency: prev.currency || "ARS" };
+      const base = {
+        ...DEFAULT_FORM,
+        currency: normalizeCurrency(prev.currency || DEFAULT_FORM.currency),
+      };
+      const previousIngredient = prev.ingredientId
+        ? ingredientOptions.find(
+            (ingredient) =>
+              getIngredientIdentifier(ingredient) === prev.ingredientId
+          )
+        : null;
       const firstIngredient = ingredientOptions[0];
-      const defaultUnit = normalizeUnit(
-        firstIngredient?.unidadMedida || unitOptions[0] || ""
-      );
+      const resolvedIngredient = previousIngredient ?? firstIngredient ?? null;
+      const defaultUnit = normalizeUnit(resolvedIngredient?.unidadMedida);
       const today = new Date();
       const formattedToday = today.toISOString().slice(0, 10);
 
       return {
         ...base,
-        ingredientId: firstIngredient ? getIngredientIdentifier(firstIngredient) : "",
+        ingredientId: resolvedIngredient
+        ? getIngredientIdentifier(resolvedIngredient)
+        : "",
         unit: defaultUnit,
-        currency: normalizeCurrency(prev.currency || "ARS"),
         validFrom: formattedToday,
       };
     });
-  }, [ingredientOptions, open, supplier, unitOptions]);
+  }, [ingredientOptions, open, supplier]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setForm((prev) => {
+      const normalizedUnit = normalizeUnit(selectedIngredient?.unidadMedida);
+
+      if (prev.unit === normalizedUnit) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        unit: normalizedUnit,
+      };
+    });
+  }, [open, selectedIngredient]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -235,9 +249,19 @@ export function AddSupplierPriceModal({
             <label className="block text-sm font-semibold text-[#5A3E1B]">Ingrediente</label>
             <select
               value={form.ingredientId}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, ingredientId: event.target.value }))
-              }
+              onChange={(event) => {
+                const { value } = event.target;
+                const ingredient = ingredientOptions.find(
+                  (item) => getIngredientIdentifier(item) === value
+                );
+                const normalizedUnit = normalizeUnit(ingredient?.unidadMedida);
+
+                setForm((prev) => ({
+                  ...prev,
+                  ingredientId: value,
+                  unit: normalizedUnit,
+                }));
+              }}
               disabled={!hasIngredients}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40 disabled:cursor-not-allowed disabled:bg-gray-100"
             >
@@ -280,18 +304,15 @@ export function AddSupplierPriceModal({
 
             <div className="space-y-1">
               <label className="block text-sm font-semibold text-[#5A3E1B]">Unidad</label>
-              <select
+              <input
+                type="text"
                 value={form.unit}
-                onChange={(event) => setForm((prev) => ({ ...prev, unit: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-              >
-                {unitOptions.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
+                readOnly
+                placeholder="Unidad definida por el ingrediente"
+                className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+              />
             </div>
+          </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
