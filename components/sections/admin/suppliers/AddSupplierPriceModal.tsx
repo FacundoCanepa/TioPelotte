@@ -313,7 +313,6 @@ export function AddSupplierPriceModal({
               />
             </div>
           </div>
-          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
@@ -338,7 +337,7 @@ export function AddSupplierPriceModal({
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, validFrom: event.target.value }))
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40" required
               />
             </div>
           </div>
