@@ -7,6 +7,7 @@ export type IngredientType = {
   ingredienteName: string;
   Stock: number;
   unidadMedida: string;
+  quantityNeto?: number | null;
   precio: number;
   stockUpdatedAt?: string | null;
   categoria_ingrediente: Category

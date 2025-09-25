@@ -22,6 +22,9 @@ export type PriceComparison = {
   currency: string;
   unit: string;
   validFrom?: string;
+  quantityNeto: number | null;
+  precioUnitarioBase: number | null;
+  unidadBase: "kg" | "l" | "unidad" | null;
 };
 
 function isSupplierActive(price: IngredientSupplierPrice): boolean {
@@ -43,6 +46,15 @@ function buildPriceComparison(
 ): PriceComparison {
   const supplier = price.supplier ?? {};
   const unit = price.unit?.trim?.() || fallbackUnit || "";
+  const normalized =
+    typeof price.precioUnitarioBase === "number" && Number.isFinite(price.precioUnitarioBase)
+      ? price.precioUnitarioBase
+      : null;
+  const unidadBase = price.unidadBase ?? null;
+  const quantityNeto =
+    typeof price.quantityNeto === "number" && Number.isFinite(price.quantityNeto)
+      ? price.quantityNeto
+      : null;
 
   return {
     supplierId: supplier?.id ?? null,
@@ -51,6 +63,9 @@ function buildPriceComparison(
     currency: price.currency ?? "",
     unit,
     validFrom: price.validFrom || undefined,
+    quantityNeto,
+    precioUnitarioBase: normalized,
+    unidadBase,
   };
 }
 
@@ -82,10 +97,31 @@ export function computeCheapestByCategory(
       return supplierActive && effective && Number.isFinite(unitPrice);
     });
 
-    const sortedPrices = validPrices
-      .map((price) => ({ price, value: Number(price.unitPrice) }))
-      .filter(({ value }) => Number.isFinite(value))
-      .sort((a, b) => a.value - b.value)
+    const decorated = validPrices.map((price) => {
+      const normalized =
+        typeof price.precioUnitarioBase === "number" && Number.isFinite(price.precioUnitarioBase)
+          ? price.precioUnitarioBase
+          : null;
+      const fallback = Number(price.unitPrice);
+      return { price, normalized, fallback };
+    });
+
+    const hasNormalized = decorated.some((entry) => entry.normalized !== null);
+
+    const sortedPrices = decorated
+      .sort((a, b) => {
+        if (hasNormalized) {
+          const aValue = a.normalized ?? Number.POSITIVE_INFINITY;
+          const bValue = b.normalized ?? Number.POSITIVE_INFINITY;
+          if (aValue !== bValue) {
+            return aValue - bValue;
+          }
+        }
+
+        const aFallback = Number.isFinite(a.fallback) ? a.fallback : Number.POSITIVE_INFINITY;
+        const bFallback = Number.isFinite(b.fallback) ? b.fallback : Number.POSITIVE_INFINITY;
+        return aFallback - bFallback;
+      })
       .map(({ price }) => price);
 
     const fallbackUnit = ingredient.unidadMedida ?? "";

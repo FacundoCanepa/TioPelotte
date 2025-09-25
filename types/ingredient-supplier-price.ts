@@ -9,7 +9,10 @@ export type IngredientSupplierPrice = {
   unitPrice: number;
   currency: string;
   unit: string;
+  quantityNeto?: number | null;
   minOrderQty: number;
   validFrom: string;
   categoria_ingrediente: Category ;
+  precioUnitarioBase?: number | null;
+  unidadBase?: "kg" | "l" | "unidad" | null;
 };

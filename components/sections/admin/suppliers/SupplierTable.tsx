@@ -1,4 +1,5 @@
 import { SupplierType } from "@/types/supplier";
+import { formatPrecioUnitario } from "@/lib/pricing/normalize";
 import { CirclePlus, Pencil, Trash2 } from "lucide-react";
 
 interface SupplierTableProps {
@@ -8,8 +9,13 @@ interface SupplierTableProps {
   onAddPrice: (supplier: SupplierType) => void;
 }
 
+type CheapestEntry = { normalized: number | null; fallback: number | null };
+
+const NORMALIZED_EPSILON = 1e-6;
+const PRICE_EPSILON = 0.01;
+
 export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: SupplierTableProps) {
-  const cheapestPriceByIngredientId = new Map<number, number>();
+  const cheapestPriceByIngredientId = new Map<number, CheapestEntry>();
   const collator = new Intl.Collator("es-ES", { sensitivity: "base" });
 
   const formatDate = (value?: string | null) => {
@@ -58,17 +64,29 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
   suppliers.forEach((supplier) => {
     supplier.ingredient_supplier_prices?.forEach((price) => {
       const ingredientId = price.ingrediente?.id;
-      const unitPrice = price.unitPrice;
+      const unitPrice = typeof price.unitPrice === "number" && Number.isFinite(price.unitPrice)
+        ? price.unitPrice
+        : null;
+      const normalized = typeof price.precioUnitarioBase === "number" && Number.isFinite(price.precioUnitarioBase) && price.precioUnitarioBase > 0
+        ? price.precioUnitarioBase
+        : null;
 
-      if (typeof ingredientId !== "number" || typeof unitPrice !== "number" || Number.isNaN(unitPrice)) {
+      if (typeof ingredientId !== "number") {
         return;
       }
 
-      const previous = cheapestPriceByIngredientId.get(ingredientId);
+      const previous = cheapestPriceByIngredientId.get(ingredientId) ?? { normalized: null, fallback: null };
+      const next: CheapestEntry = { ...previous };
 
-      if (previous === undefined || unitPrice < previous) {
-        cheapestPriceByIngredientId.set(ingredientId, unitPrice);
+      if (normalized !== null) {
+        next.normalized =
+          next.normalized === null || normalized < next.normalized ? normalized : next.normalized;
+      } else if (next.normalized === null && unitPrice !== null) {
+        next.fallback =
+          next.fallback === null || unitPrice < next.fallback ? unitPrice : next.fallback;
       }
+
+      cheapestPriceByIngredientId.set(ingredientId, next);
     });
   });
 
@@ -146,7 +164,7 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
                                 Ingrediente
                               </th>
                               <th scope="col" className="px-2 py-1 font-semibold">
-                                $/unit
+                                Precio
                               </th>
                               <th scope="col" className="px-2 py-1 font-semibold">
                                 Vigente desde
@@ -159,49 +177,92 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
                               </th>
                             </tr>
                           </thead>
-                          <tbody>
-                            {sortedPrices.map((price, index) => {
-                              const ingredientId = price.ingrediente?.id;
-                              const ingredientName = price.ingrediente?.ingredienteName ?? "Ingrediente sin nombre";
-                              const cheapestUnitPrice =
-                                typeof ingredientId === "number"
-                                  ? cheapestPriceByIngredientId.get(ingredientId)
-                                  : undefined;
-                              const isCheapest =
-                                typeof price.unitPrice === "number" &&
-                                typeof ingredientId === "number" &&
-                                cheapestUnitPrice !== undefined &&
-                                price.unitPrice === cheapestUnitPrice;
+                            <tbody>
+                              {sortedPrices.map((price, index) => {
+                                const ingredientId = price.ingrediente?.id;
+                                const ingredientName = price.ingrediente?.ingredienteName ?? "Ingrediente sin nombre";
+                                const entry =
+                                  typeof ingredientId === "number"
+                                    ? cheapestPriceByIngredientId.get(ingredientId)
+                                    : undefined;
+                                const normalizedValue =
+                                  typeof price.precioUnitarioBase === "number" &&
+                                  Number.isFinite(price.precioUnitarioBase) &&
+                                  price.precioUnitarioBase > 0
+                                    ? price.precioUnitarioBase
+                                    : null;
+                                const unidadBase = price.unidadBase ?? null;
+                                const fallbackUnitPrice =
+                                  typeof price.unitPrice === "number" &&
+                                  Number.isFinite(price.unitPrice) &&
+                                  price.unitPrice > 0
+                                    ? price.unitPrice
+                                    : null;
 
-                              return (
-                                <tr
-                                  key={`${price.id}-${ingredientId ?? index}`}
-                                  className={index === 0 ? "" : "border-t border-gray-100"}
-                                >
-                                  <td className="px-2 py-1">{ingredientName}</td>
-                                  <td className="px-2 py-1">
-                                  {formatUnitPrice(
-                                      price.unitPrice,
-                                      price.currency,
-                                      price.unit?.trim?.() ||
-                                        price.ingrediente?.unidadMedida?.trim?.() ||
-                                        ""
-                                    )}
-                                  </td>
-                                  <td className="px-2 py-1">{formatDate(price.validFrom)}</td>
-                                  <td className="px-2 py-1">{formatMinOrderQty(price.minOrderQty)}</td>
-                                  <td className="px-2 py-1 text-center">
-                                    {isCheapest ? (
-                                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                        Más barato
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-gray-400">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                                let isCheapest = false;
+                                if (entry) {
+                                  if (entry.normalized !== null && normalizedValue !== null) {
+                                    isCheapest = Math.abs(normalizedValue - entry.normalized) < NORMALIZED_EPSILON;
+                                  } else if (entry.normalized === null && entry.fallback !== null && fallbackUnitPrice !== null) {
+                                    isCheapest = Math.abs(fallbackUnitPrice - entry.fallback) < PRICE_EPSILON;
+                                  }
+                                }
+
+                                const badgeLabel =
+                                  isCheapest && entry?.normalized !== null && normalizedValue !== null && unidadBase
+                                    ? `Más barato por ${unidadBase}`
+                                    : "Más barato";
+
+                                const normalizedLabel =
+                                  normalizedValue !== null && unidadBase
+                                    ? formatPrecioUnitario(normalizedValue, unidadBase, price.currency ?? "ARS")
+                                    : null;
+
+                                return (
+                                  <tr
+                                    key={`${price.id}-${ingredientId ?? index}`}
+                                    className={index === 0 ? "" : "border-t border-gray-100"}
+                                  >
+                                    <td className="px-2 py-1">{ingredientName}</td>
+                                    <td className="px-2 py-1">
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-medium text-gray-800">
+                                          {formatUnitPrice(
+                                            price.unitPrice,
+                                            price.currency,
+                                            price.unit?.trim?.() ||
+                                              price.ingrediente?.unidadMedida?.trim?.() ||
+                                              ""
+                                          )}
+                                        </span>
+                                        {normalizedLabel ? (
+                                          <span className="text-[11px] font-medium text-emerald-700">
+                                            ≈ {normalizedLabel}
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className="text-[11px] text-gray-400"
+                                            title="Falta ‘quantityNeto’ o unidad no soportada"
+                                          >
+                                            —<span className="sr-only">Precio unitario no disponible</span>
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-1">{formatDate(price.validFrom)}</td>
+                                    <td className="px-2 py-1">{formatMinOrderQty(price.minOrderQty)}</td>
+                                    <td className="px-2 py-1 text-center">
+                                      {isCheapest ? (
+                                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                          {badgeLabel}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-400">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                           </tbody>
                         </table>
                       </div>

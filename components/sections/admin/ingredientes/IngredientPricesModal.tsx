@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, Loader2, PackageOpen, X } from 'lucide-react';
 
 import type { CheapestByCategoryItem } from '@/lib/pricing/cheapest-by-category';
+import { formatPrecioUnitario } from '@/lib/pricing/normalize';
 import type { IngredientType } from '@/types/ingredient';
 
 type IngredientPricesModalProps = {
@@ -137,21 +138,44 @@ export function IngredientPricesModal({
   }, [ingredient, ingredientIdentifier, open]);
 
   const cheapestItem = useMemo(() => {
+    const withNormalized = comparisons.filter((item) => {
+      const value = item.cheapest?.precioUnitarioBase;
+      return typeof value === 'number' && Number.isFinite(value) && value > 0;
+    });
+
+    if (withNormalized.length > 0) {
+      return withNormalized.reduce((min, current) => {
+        const minValue = min.cheapest?.precioUnitarioBase ?? Number.POSITIVE_INFINITY;
+        const currentValue = current.cheapest?.precioUnitarioBase ?? Number.POSITIVE_INFINITY;
+        return currentValue < minValue ? current : min;
+      });
+    }
+
     const pricedItems = comparisons.filter((item) => item.cheapest !== null);
     if (pricedItems.length === 0) return null;
 
-    return pricedItems.reduce((min, current) =>
-      current.cheapest!.price < min.cheapest!.price ? current : min
-    );
+    return pricedItems.reduce((min, current) => {
+      const minValue = min.cheapest?.price ?? Number.POSITIVE_INFINITY;
+      const currentValue = current.cheapest?.price ?? Number.POSITIVE_INFINITY;
+      return currentValue < minValue ? current : min;
+    });
   }, [comparisons]);
 
   const sortedComparisons = useMemo(() => {
     let sorted = [...comparisons];
     if (sortDirection) {
+      const getSortValue = (item: CheapestByCategoryItem) => {
+        const normalized = item.cheapest?.precioUnitarioBase;
+        if (typeof normalized === 'number' && Number.isFinite(normalized) && normalized > 0) {
+          return normalized;
+        }
+        return item.cheapest?.price ?? Number.POSITIVE_INFINITY;
+      };
+
       sorted.sort((a, b) => {
-        const priceA = a.cheapest?.price ?? Infinity;
-        const priceB = b.cheapest?.price ?? Infinity;
-        return sortDirection === 'asc' ? priceA - priceB : priceB - priceA;
+        const valueA = getSortValue(a);
+        const valueB = getSortValue(b);
+        return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
       });
     } else {
       sorted.sort((a, b) => {
@@ -189,10 +213,27 @@ export function IngredientPricesModal({
     const unit = summary.unit?.trim() || fallbackUnit || 'unidad';
     const currency = summary.currency?.trim() || 'ARS';
     const priceLabel = `${formatCurrency(summary.price, currency)} / ${unit}`;
+    const normalizedValue = summary.precioUnitarioBase;
+    const unidadBase = summary.unidadBase;
+    const hasNormalized =
+      typeof normalizedValue === 'number' && Number.isFinite(normalizedValue) && normalizedValue > 0 &&
+      Boolean(unidadBase);
 
     return (
       <div className="flex flex-col gap-0.5">
         <span className="font-semibold text-[#4A2E15]">{priceLabel}</span>
+        {hasNormalized && unidadBase ? (
+          <span className="text-xs font-medium text-emerald-700">
+            ≈ {formatPrecioUnitario(normalizedValue, unidadBase, currency)}
+          </span>
+        ) : (
+          <span
+            className="text-xs text-gray-400"
+            title="Falta ‘quantityNeto’ o unidad no soportada"
+          >
+            —<span className="sr-only">Precio unitario no disponible</span>
+          </span>
+        )}
         {summary.validFrom ? (
           <span className="text-xs text-gray-500">
             Vigente desde {formatDate(summary.validFrom)}
@@ -289,7 +330,7 @@ export function IngredientPricesModal({
                           style={{ cursor: 'pointer' }}
                         >
                           <div className="flex items-center gap-1">
-                            <span>Precio</span>
+                            <span>Precio unitario</span>
                             {sortDirection === 'asc' && <ChevronUp className="h-4 w-4" />}
                             {sortDirection === 'desc' && <ChevronDown className="h-4 w-4" />}
                           </div>
@@ -302,6 +343,16 @@ export function IngredientPricesModal({
                           item.ingredientId === selectedIngredientId;
                         const isCheapest =
                           item.ingredientId === cheapestItem?.ingredientId;
+                        const cheapestBase = cheapestItem?.cheapest?.unidadBase ?? null;
+                        const cheapestNormalizedValue = cheapestItem?.cheapest?.precioUnitarioBase ?? null;
+                        const hasCheapestNormalized =
+                          typeof cheapestNormalizedValue === 'number' &&
+                          Number.isFinite(cheapestNormalizedValue) &&
+                          cheapestNormalizedValue > 0 &&
+                          Boolean(cheapestBase);
+                        const cheapestBadgeLabel = hasCheapestNormalized && cheapestBase
+                          ? `Más barato por ${cheapestBase}`
+                          : 'Más barato';
 
                         return (
                           <tr
@@ -320,11 +371,11 @@ export function IngredientPricesModal({
                                     Seleccionado
                                   </span>
                                 )}
-                                {isCheapest && (
-                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                                    Más barato
-                                  </span>
-                                )}
+                              {isCheapest && (
+                                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                                  {cheapestBadgeLabel}
+                                </span>
+                              )}
                               </div>
                             </td>
                             <td className="p-3 align-top">

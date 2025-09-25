@@ -2,6 +2,7 @@ import { IngredientType } from "@/types/ingredient";
 import { SupplierType } from "@/types/supplier";
 import { IngredientSupplierPrice } from "@/types/ingredient-supplier-price";
 import { Category } from "@/types/categoria_ingrediente";
+import { computePrecioUnitarioBase, getUnidadBase } from "@/lib/pricing/normalize";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -207,6 +208,9 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     ? attributes.stock_updated_at
     : null;
 
+  const quantityNetoValue = attributes.quantityNeto ?? attributes.quantity_neto;
+  const quantityNeto = toNumberOrNull(quantityNetoValue);
+
     const rawCategory = attributes.categoria_ingrediente ?? entry.categoria_ingrediente;
     const categoria_ingrediente = mapCategoryFromStrapi(rawCategory);
   
@@ -216,6 +220,7 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     ingredienteName,
     Stock: normalizeNumber(attributes.Stock),
     unidadMedida,
+    quantityNeto,
     precio: normalizeNumber(attributes.precio ?? attributes.price),
     stockUpdatedAt,
     categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category)
@@ -306,6 +311,19 @@ function mapPriceInternal(
 
   if (!ingrediente) return null;
 
+  const rawQuantity = attributes.quantityNeto ?? attributes.quantity_neto;
+  const quantityNeto = toNumberOrNull(rawQuantity);
+  const unitPrice = normalizeNumber(attributes.unitPrice ?? attributes.price);
+  const unitFromAttributes = typeof attributes.unit === "string" ? attributes.unit : "";
+  const trimmedUnit = unitFromAttributes.trim();
+  const fallbackUnit = ingrediente?.unidadMedida?.trim?.() ?? "";
+  const resolvedUnit = trimmedUnit || fallbackUnit;
+
+  const { value: precioUnitarioBase, unidadBase } =
+    quantityNeto !== null && resolvedUnit
+      ? computePrecioUnitarioBase(unitPrice, quantityNeto, resolvedUnit)
+      : { value: null, unidadBase: getUnidadBase(resolvedUnit) };
+
   const base: IngredientSupplierPrice = {
     id,
     ingrediente,
@@ -318,19 +336,16 @@ function mapPriceInternal(
       ingredientes: [],
       ingredient_supplier_prices: [],
     },
-    unitPrice: normalizeNumber(attributes.unitPrice ?? attributes.price),
+    unitPrice,
     currency: typeof attributes.currency === "string" ? attributes.currency : "",
-    unit: typeof attributes.unit === "string" ? attributes.unit : "",
+    unit: resolvedUnit,
+    quantityNeto,
     minOrderQty: normalizeNumber(attributes.minOrderQty ?? attributes.min_order_qty),
     validFrom: typeof attributes.validFrom === "string" ? attributes.validFrom : "",
     categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category),
+    precioUnitarioBase,
+    unidadBase,
   };
-  if (!base.unit || base.unit.trim() === "") {
-    const fallbackUnit = base.ingrediente?.unidadMedida?.trim?.();
-    if (fallbackUnit) {
-      base.unit = fallbackUnit;
-    }
-  }
   return categoria_ingrediente ? { ...base, categoria_ingrediente } : base;
 }
 

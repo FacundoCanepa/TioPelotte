@@ -1,3 +1,4 @@
+import { getUnidadBase } from "@/lib/pricing/normalize";
 import { strapiFetch } from "@/app/api/admin/suppliers/strapi-helpers";
 
 type UnknownRecord = Record<string, unknown>;
@@ -139,8 +140,27 @@ export function sanitizePricePayload(raw: unknown): Record<string, unknown> {
     sanitized.currency = inner.currency.trim();
   }
 
-  if (typeof inner.unit === "string") {
-    sanitized.unit = inner.unit.trim();
+  const unitValue = typeof inner.unit === "string" ? inner.unit.trim() : "";
+  if (unitValue) {
+    sanitized.unit = unitValue;
+  }
+
+  const unitBase = unitValue ? getUnidadBase(unitValue) : null;
+  const quantityNetoValue = inner.quantityNeto ?? inner.quantity_neto;
+  const hasQuantityNeto = !(
+    quantityNetoValue === undefined ||
+    quantityNetoValue === null ||
+    (typeof quantityNetoValue === "string" && quantityNetoValue.trim() === "")
+  );
+  const quantityNeto = hasQuantityNeto ? toNumberOrNull(quantityNetoValue) : null;
+
+  if (hasQuantityNeto) {
+    if (quantityNeto === null || quantityNeto <= 0) {
+      throw new Error("La cantidad neta debe ser mayor a 0");
+    }
+    sanitized.quantityNeto = quantityNeto;
+  } else if (unitBase) {
+    throw new Error("La cantidad neta es obligatoria para unidades soportadas");
   }
 
   if (typeof inner.validFrom === "string") {

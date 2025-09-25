@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { usePricesAdmin } from "@/components/sections/admin/precios/hooks/usePricesAdmin";
 import { IngredientType } from "@/types/ingredient";
 import { SupplierType } from "@/types/supplier";
+import { getUnidadBase } from "@/lib/pricing/normalize";
 
 type AddSupplierPriceModalProps = {
   supplier: SupplierType | null;
@@ -19,6 +20,7 @@ type FormState = {
   ingredientId: string;
   unitPrice: string;
   unit: string;
+  quantityNeto: string;
   currency: string;
   validFrom: string;
   minOrderQty: string;
@@ -28,11 +30,12 @@ const DEFAULT_FORM: FormState = {
   ingredientId: "",
   unitPrice: "",
   unit: "",
+  quantityNeto: "",
   currency: "ARS",
   validFrom: "",
   minOrderQty: "",
 };
-const UNIT_SUGGESTIONS = ["kg", "planchas", "unidad"];
+const UNIT_SUGGESTIONS = ["kg", "g", "l", "ml", "unidad", "docena"];
 function getIngredientIdentifier(ingredient: IngredientType) {
   if (ingredient.documentId) return ingredient.documentId;
   return String(ingredient.id);
@@ -55,6 +58,7 @@ export function AddSupplierPriceModal({
 }: AddSupplierPriceModalProps) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
   const { createPrice } = usePricesAdmin();
 
   const ingredientOptions = useMemo(() => {
@@ -84,6 +88,7 @@ export function AddSupplierPriceModal({
     if (!open || !supplier) {
       setForm(DEFAULT_FORM);
       setSubmitting(false);
+      setQuantityError(null);
       return;
     }
 
@@ -101,6 +106,10 @@ export function AddSupplierPriceModal({
       const firstIngredient = ingredientOptions[0];
       const resolvedIngredient = previousIngredient ?? firstIngredient ?? null;
       const defaultUnit = normalizeUnit(resolvedIngredient?.unidadMedida);
+      const defaultQuantity =
+        typeof resolvedIngredient?.quantityNeto === "number" && resolvedIngredient.quantityNeto > 0
+          ? String(resolvedIngredient.quantityNeto)
+          : "";
       const today = new Date();
       const formattedToday = today.toISOString().slice(0, 10);
 
@@ -110,6 +119,7 @@ export function AddSupplierPriceModal({
         ? getIngredientIdentifier(resolvedIngredient)
         : "",
         unit: defaultUnit,
+        quantityNeto: defaultQuantity,
         validFrom: formattedToday,
       };
     });
@@ -120,14 +130,20 @@ export function AddSupplierPriceModal({
 
     setForm((prev) => {
       const normalizedUnit = normalizeUnit(selectedIngredient?.unidadMedida);
+      const defaultQuantity =
+        typeof selectedIngredient?.quantityNeto === "number" && selectedIngredient.quantityNeto > 0
+          ? String(selectedIngredient.quantityNeto)
+          : "";
+      const shouldUpdateQuantity = prev.quantityNeto === "" && defaultQuantity;
 
-      if (prev.unit === normalizedUnit) {
+      if (prev.unit === normalizedUnit && (!shouldUpdateQuantity || prev.quantityNeto === defaultQuantity)) {
         return prev;
       }
 
       return {
         ...prev,
         unit: normalizedUnit,
+        quantityNeto: shouldUpdateQuantity ? defaultQuantity : prev.quantityNeto,
       };
     });
   }, [open, selectedIngredient]);
@@ -135,6 +151,7 @@ export function AddSupplierPriceModal({
   const handleClose = () => {
     if (submitting) return;
     setForm(DEFAULT_FORM);
+    setQuantityError(null);
     onClose();
   };
 
@@ -160,13 +177,32 @@ export function AddSupplierPriceModal({
     const normalizedUnitInput = form.unit.trim();
 
     if (!normalizedUnitInput) {
-        toast.error("Seleccioná una unidad para el precio");
+      toast.error("Seleccioná una unidad para el precio");
       return;
     }
+
+    const unidadBase = getUnidadBase(normalizedUnitInput);
+    const rawQuantityInput = form.quantityNeto.trim();
+    const hasQuantityInput = rawQuantityInput !== "";
+    const normalizedQuantityString = hasQuantityInput ? rawQuantityInput.replace(/,/g, ".") : "";
+    const parsedQuantity = hasQuantityInput ? Number(normalizedQuantityString) : null;
+
+    if (hasQuantityInput && (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0)) {
+      setQuantityError("Indicá una cantidad neta mayor a 0");
+      return;
+    }
+
+    if (unidadBase && (!hasQuantityInput || parsedQuantity === null || parsedQuantity <= 0)) {
+      setQuantityError("Indicá una cantidad neta mayor a 0");
+      return;
+    }
+
+    setQuantityError(null);
+
     if (!form.validFrom) {
-        toast.error("Indicá desde cuándo aplica el precio");
-        return;
-      }
+      toast.error("Indicá desde cuándo aplica el precio");
+      return;
+    }
   
       let minOrderQtyValue: number | null = null;
       if (form.minOrderQty) {
@@ -177,7 +213,7 @@ export function AddSupplierPriceModal({
         }
         minOrderQtyValue = parsedMinOrderQty;
       }
-  
+
     try {
       setSubmitting(true);
 
@@ -191,6 +227,7 @@ export function AddSupplierPriceModal({
         unitPrice: Number(form.unitPrice),
         currency: normalizeCurrency(form.currency),
         unit: normalizedUnitInput,
+        quantityNeto: parsedQuantity ?? undefined,
         minOrderQty: minOrderQtyValue,
         validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
         ingrediente: selectedIngredient
@@ -257,12 +294,18 @@ export function AddSupplierPriceModal({
                   (item) => getIngredientIdentifier(item) === value
                 );
                 const normalizedUnit = normalizeUnit(ingredient?.unidadMedida);
+                const defaultQuantity =
+                  typeof ingredient?.quantityNeto === "number" && ingredient.quantityNeto > 0
+                    ? String(ingredient.quantityNeto)
+                    : "";
 
                 setForm((prev) => ({
                   ...prev,
                   ingredientId: value,
                   unit: normalizedUnit,
+                  quantityNeto: defaultQuantity,
                 }));
+                setQuantityError(null);
               }}
               disabled={!hasIngredients}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40 disabled:cursor-not-allowed disabled:bg-gray-100"
@@ -287,44 +330,76 @@ export function AddSupplierPriceModal({
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-[#5A3E1B]">Precio unitario</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={form.unitPrice}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, unitPrice: event.target.value }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-                placeholder="Ej: 1500"
-                required
-              />
-            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-[#5A3E1B]">Precio unitario</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={form.unitPrice}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, unitPrice: event.target.value }))
+                  }
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                  placeholder="Ej: 1500"
+                  required
+                />
+              </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-[#5A3E1B]">Unidad</label>
-              <input
-                type="text"
-                 list="add-supplier-price-unit-options"
-                value={form.unit}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, unit: event.target.value }))
-                }
-                placeholder="Ej: kg"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-                required
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-[#5A3E1B]">Unidad</label>
+                <input
+                  type="text"
+                  list="add-supplier-price-unit-options"
+                  value={form.unit}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, unit: event.target.value }))
+                  }
+                  placeholder="Ej: kg"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                  required
+                />
+                <datalist id="add-supplier-price-unit-options">
+                  {UNIT_SUGGESTIONS.map((option) => (
+                    <option key={option} value={option} />
+                  ))}
+                </datalist>
+              </div>
 
-              />
-                       <datalist id="add-supplier-price-unit-options">
-                {UNIT_SUGGESTIONS.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-[#5A3E1B]">Cantidad neta</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={form.quantityNeto}
+                  onChange={(event) => {
+                    const { value } = event.target;
+                    setForm((prev) => ({ ...prev, quantityNeto: value }));
+                    if (quantityError) {
+                      const normalized = value.replace(/,/g, ".");
+                      const parsed = Number(normalized);
+                      if (value === "" || (Number.isFinite(parsed) && parsed > 0)) {
+                        setQuantityError(null);
+                      }
+                    }
+                  }}
+                  placeholder="Cantidad neta (ej. 5)"
+                  aria-invalid={quantityError ? "true" : undefined}
+                  aria-describedby="quantityNeto-help"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                />
+                <p id="quantityNeto-help" className="text-xs text-gray-500">
+                  En la misma unidad del paquete (ej. 5 kg → 5).
+                </p>
+                {quantityError && (
+                  <p className="text-xs text-red-600" role="alert">
+                    {quantityError}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">

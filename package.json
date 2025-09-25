@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npx tsc --noEmit false --outDir .tmp-tests lib/pricing/normalize.ts lib/pricing/normalize.test.ts && node --test .tmp-tests/normalize.test.js && rm -rf .tmp-tests"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.5",
