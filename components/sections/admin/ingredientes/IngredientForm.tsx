@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function IngredientForm({ form, setForm, onSave }: Props) {
-  const unidades = ['kg', 'planchas', 'unidad'];
+  const unidades = ['kg', 'planchas', 'unidad' , 'litros', 'maples', 'bolsas'];
   const { data: suppliers, isLoading: isLoadingSuppliers } = useGetSuppliers();
   const { data: categories, isLoading: isLoadingCategories } = useGetIngredientCategories();
   const categoryItems: Category[] = Array.isArray(categories) ? categories : categories?.items ?? [];
