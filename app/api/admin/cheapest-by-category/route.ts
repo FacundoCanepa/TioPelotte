@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { computeCheapestByCategory, IngredientWithPrices } from "@/lib/pricing/cheapest-by-category";
 import type { IngredientSupplierPrice } from "@/types/ingredient-supplier-price";
-import { PRICE_POPULATE } from "@/components/sections/admin/prices/helpers";
 import { mapIngredientFromStrapi, mapPriceFromStrapi, strapiFetch } from "../suppliers/strapi-helpers";
 
 const LOG_PREFIX = "[admin/ingredients][cheapest-by-category]";
@@ -97,7 +96,8 @@ async function fetchIngredientsByCategory(filter: CategoryFilter): Promise<Ingre
 
 async function fetchPricesByCategory(filter: CategoryFilter): Promise<IngredientSupplierPrice[]> {
   const params = new URLSearchParams();
-  params.set("populate", PRICE_POPULATE);
+  params.set("populate[ingrediente][populate][0]", "categoria_ingrediente");
+  params.set("populate[supplier]", "*");
   params.set("pagination[page]", "1");
   params.set("pagination[pageSize]", DEFAULT_PAGE_SIZE);
 
