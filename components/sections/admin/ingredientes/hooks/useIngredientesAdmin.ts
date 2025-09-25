@@ -23,9 +23,13 @@ export function useIngredientesAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<IngredientType>>({
     ingredienteName: '',
-    stock: 0,
+    Stock: 0,
     unidadMedida: 'kg',
     precio: 0,
+    categoria_ingrediente: undefined,
+    minOrderQty: 0,
+    validFrom: new Date().toISOString(),
+    supplier: undefined,
   });
 
   const unidades = ['kg', 'planchas', 'unidad'];
@@ -41,10 +45,15 @@ export function useIngredientesAdmin() {
 
       const payload = {
         ingredienteName: form.ingredienteName,
-        stock: form.stock,
+        Stock: form.Stock,
         unidadMedida: form.unidadMedida,
         precio: form.precio,
         documentId: isNew ? generateSlug(form.ingredienteName) : form.documentId,
+        stockUpdatedAt: new Date().toISOString(),
+        categoria_ingrediente: form.categoria_ingrediente,
+        minOrderQty: form.minOrderQty,
+        validFrom: form.validFrom,
+        supplier: form.supplier,
       };
 
       const url = isNew ? '/api/admin/ingredients' : `/api/admin/ingredients/${form.documentId}`;
@@ -90,20 +99,28 @@ export function useIngredientesAdmin() {
     setForm({
       id: i.id,
       ingredienteName: i.ingredienteName,
-      stock: i.stock,
+      Stock: i.Stock,
       unidadMedida: i.unidadMedida,
       precio: i.precio,
       documentId: i.documentId,
+      categoria_ingrediente: i.categoria_ingrediente,
+      minOrderQty: i.minOrderQty,
+      validFrom: i.validFrom,
+      supplier: i.supplier,
     });
     setShowForm(true);
   };
 
   const startNew = () => {
     setForm({
-      ingredienteName: '',
-      stock: 0,
-      unidadMedida: 'kg',
-      precio: 0,
+    ingredienteName: '',
+    Stock: 0,
+    unidadMedida: 'kg',
+    precio: 0,
+    categoria_ingrediente: undefined,
+    minOrderQty: 0,
+    validFrom: new Date().toISOString(),
+    supplier: undefined,
     });
     setShowForm(true);
   };
@@ -118,7 +135,7 @@ export function useIngredientesAdmin() {
         ? true
         : (i.categoria_ingrediente?.id ?? null) === filterCategoria
     )
-    .filter(i => (filterLowStock ? i.stock <= 5 : true))
+    .filter(i => (filterLowStock ? i.Stock <= 5 : true))
     .sort((a, b) => {
       const field = orderBy.field;
       const dir = orderBy.direction === 'asc' ? 1 : -1;
