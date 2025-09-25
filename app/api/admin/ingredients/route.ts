@@ -9,9 +9,7 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
   const categoryId = (searchParams.get("categoryId") || "").trim();
   const sp = new URLSearchParams();
 
-  // Correctly populate multiple relations by appending each field
-  sp.append("populate", "categoria_ingrediente");
-  sp.append("populate", "supplier");
+  sp.set("populate", "*");
 
   if (q) {
     sp.set("filters[ingredienteName][$containsi]", q);
@@ -53,8 +51,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    const strapiResponse = await response.json();
+
+    // Transform the response to match what the client-side code expects
+    const responsePayload = {
+      items: strapiResponse.data,
+      meta: strapiResponse.meta,
+      totalCount: strapiResponse.meta.pagination.total,
+    };
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("[INGREDIENTS_GET] Internal Error:", error);
     return NextResponse.json(
