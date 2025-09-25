@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { strapiFetch } from "../suppliers/strapi-helpers";
+import { IngredientType } from "@/types/ingredient";
+import { mapIngredientFromStrapi, strapiFetch } from "../suppliers/strapi-helpers";
 
 // Helper to build the Strapi URL for listing ingredients
 function buildStrapiListURL(searchParams: URLSearchParams) {
@@ -52,12 +53,42 @@ export async function GET(req: NextRequest) {
     }
 
     const strapiResponse = await response.json();
+    const rawItems = Array.isArray(strapiResponse?.data)
+    ? strapiResponse.data
+    : [];
+  const items = rawItems
+    .map((entry: unknown) => mapIngredientFromStrapi(entry))
+    .filter((item): item is IngredientType => Boolean(item));
 
+  const meta = strapiResponse?.meta ?? {};
+  const paginationRaw =
+    (meta as { pagination?: Record<string, unknown> })?.pagination ?? {};
+  const totalCount =
+    typeof paginationRaw.total === "number"
+      ? (paginationRaw.total as number)
+      : items.length;
     // Transform the response to match what the client-side code expects
     const responsePayload = {
-      items: strapiResponse.data,
-      meta: strapiResponse.meta,
-      totalCount: strapiResponse.meta.pagination.total,
+      items,
+      meta: {
+        ...meta,
+        pagination: {
+          page:
+            typeof paginationRaw.page === "number"
+              ? paginationRaw.page
+              : 1,
+          pageSize:
+            typeof paginationRaw.pageSize === "number"
+              ? paginationRaw.pageSize
+              : items.length,
+          pageCount:
+            typeof paginationRaw.pageCount === "number"
+              ? paginationRaw.pageCount
+              : 1,
+          total: totalCount,
+        },
+      },
+      totalCount,
     };
 
     return NextResponse.json(responsePayload);
