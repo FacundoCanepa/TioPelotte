@@ -31,7 +31,7 @@ export function buildPriceListPath(searchParams: URLSearchParams) {
 
   // Use object-based populate syntax for clarity and to avoid issues
   params.set("populate[ingrediente][populate]", "categoria_ingrediente");
-  params.set("populate[supplier]", "*");
+  params.set("populate[supplier]", "true");
 
 
   const ingredientId = searchParams.get("ingredientId");
