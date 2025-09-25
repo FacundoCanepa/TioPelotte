@@ -198,10 +198,16 @@ export async function POST(req: NextRequest) {
 
     const unidadMedidaValue = normalizeString(body.unidadMedida);
 
+    const quantityNetoValue =
+      typeof body.quantityNeto === "number" && Number.isFinite(body.quantityNeto)
+        ? body.quantityNeto
+        : null;
+
     const ingredientData = {
       ingredienteName: body.ingredienteName,
       Stock: body.Stock,
       unidadMedida: unidadMedidaValue,
+      quantityNeto: quantityNetoValue,
       categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente),
       supplier: buildSingleRelation(body.supplier),
       precio: body.precio,

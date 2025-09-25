@@ -13,11 +13,17 @@ export async function PUT(
     console.log("📥 PUT recibido body:", body);
     console.log("🆔 Params (documentId):", id);
 
+    const quantityNetoValue =
+      typeof body.quantityNeto === "number" && Number.isFinite(body.quantityNeto)
+        ? body.quantityNeto
+        : null;
+
     const data = {
       ingredienteName: body.ingredienteName,
       Stock: body.Stock,
       unidadMedida: body.unidadMedida,
       precio: body.precio,
+      quantityNeto: quantityNetoValue,
     };
 
     const res = await fetch(`${backend}/api/ingredientes/${id}`, {

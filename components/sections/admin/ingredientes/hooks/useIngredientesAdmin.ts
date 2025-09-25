@@ -27,7 +27,7 @@ export function useIngredientesAdmin() {
     unidadMedida: 'kg',
     precio: 0,
     categoria_ingrediente: undefined,
-    minOrderQty: 0,
+    quantityNeto: null,
     validFrom: new Date().toISOString(),
     supplier: undefined,
   });
@@ -51,7 +51,7 @@ export function useIngredientesAdmin() {
         documentId: isNew ? generateSlug(form.ingredienteName) : form.documentId,
         stockUpdatedAt: new Date().toISOString(),
         categoria_ingrediente: form.categoria_ingrediente,
-        minOrderQty: form.minOrderQty,
+        quantityNeto: form.quantityNeto,
         validFrom: form.validFrom,
         supplier: form.supplier,
       };
@@ -104,7 +104,7 @@ export function useIngredientesAdmin() {
       precio: i.precio,
       documentId: i.documentId,
       categoria_ingrediente: i.categoria_ingrediente,
-      minOrderQty: i.minOrderQty,
+      quantityNeto: i.quantityNeto,
       validFrom: i.validFrom,
       supplier: i.supplier,
     });
@@ -118,7 +118,7 @@ export function useIngredientesAdmin() {
     unidadMedida: 'kg',
     precio: 0,
     categoria_ingrediente: undefined,
-    minOrderQty: 0,
+    quantityNeto: null,
     validFrom: new Date().toISOString(),
     supplier: undefined,
     });

@@ -104,13 +104,20 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
         </select>
       </div>
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-[#5A3E1B]">Cantidad mínima de pedido</label>
+        <label className="text-sm font-semibold text-[#5A3E1B]">Cantidad neta (kilos, planchas, etc.)</label>
         <input
           type="number"
-          placeholder="Cantidad mínima"
-          value={form.minOrderQty}
-          onChange={e => setForm({ ...form, minOrderQty: Number(e.target.value) })}
+          placeholder="Cantidad neta"
+          value={form.quantityNeto ?? ''}
+          onChange={e =>
+            setForm({
+              ...form,
+              quantityNeto: e.target.value === '' ? null : Number(e.target.value),
+            })
+          }
           className="border p-2 rounded w-full"
+          min={0}
+          step="any"
         />
       </div>
       <div className="space-y-1">
