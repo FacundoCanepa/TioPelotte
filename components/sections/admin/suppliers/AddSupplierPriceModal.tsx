@@ -32,7 +32,7 @@ const DEFAULT_FORM: FormState = {
   validFrom: "",
   minOrderQty: "",
 };
-
+const UNIT_SUGGESTIONS = ["kg", "planchas", "unidad"];
 function getIngredientIdentifier(ingredient: IngredientType) {
   if (ingredient.documentId) return ingredient.documentId;
   return String(ingredient.id);
@@ -157,7 +157,9 @@ export function AddSupplierPriceModal({
       return;
     }
 
-    if (!form.unit) {
+    const normalizedUnitInput = form.unit.trim();
+
+    if (!normalizedUnitInput) {
         toast.error("Seleccioná una unidad para el precio");
       return;
     }
@@ -188,7 +190,7 @@ export function AddSupplierPriceModal({
       const dto = {
         unitPrice: Number(form.unitPrice),
         currency: normalizeCurrency(form.currency),
-        unit: form.unit,
+        unit: normalizedUnitInput,
         minOrderQty: minOrderQtyValue,
         validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
         ingrediente: selectedIngredient
@@ -306,11 +308,21 @@ export function AddSupplierPriceModal({
               <label className="block text-sm font-semibold text-[#5A3E1B]">Unidad</label>
               <input
                 type="text"
+                 list="add-supplier-price-unit-options"
                 value={form.unit}
-                readOnly
-                placeholder="Unidad definida por el ingrediente"
-                className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, unit: event.target.value }))
+                }
+                placeholder="Ej: kg"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+                required
+
               />
+                       <datalist id="add-supplier-price-unit-options">
+                {UNIT_SUGGESTIONS.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
             </div>
           </div>
 
