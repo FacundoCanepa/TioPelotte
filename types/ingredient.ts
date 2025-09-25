@@ -5,6 +5,7 @@ export type IngredientType = {
   id: number;
   documentId: string;
   ingredienteName: string;
+  ingredienteNameProducion?: string | null;
   Stock: number;
   unidadMedida: string;
   quantityNeto?: number | null;

@@ -30,6 +30,16 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
         />
       </div>
       <div className="space-y-1">
+        <label className="text-sm font-semibold text-[#5A3E1B]">Nombre para producción</label>
+        <input
+          type="text"
+          placeholder="Detalles para producción"
+          value={form.ingredienteNameProducion || ''}
+          onChange={e => setForm({ ...form, ingredienteNameProducion: e.target.value })}
+          className="border p-2 rounded w-full"
+        />
+      </div>
+      <div className="space-y-1">
         <label className="text-sm font-semibold text-[#5A3E1B]">Stock</label>
         <input
           type="number"

@@ -55,7 +55,14 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
             <tr key={i.id} className="border-b last:border-none hover:bg-[#FFF8EC] transition">
               <td className="p-3 capitalize font-medium flex items-center gap-2">
               {i.Stock <= 5 && <AlertTriangle className="h-4 w-4 text-red-600" />}
-                {i.ingredienteName}
+                <div className="flex flex-col">
+                  <span>{i.ingredienteName}</span>
+                  {i.ingredienteNameProducion && (
+                    <span className="text-xs font-normal text-[#7a5b3a]">
+                      {i.ingredienteNameProducion}
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="p-3">{i.Stock}</td>
               <td className="p-3 text-xs font-medium bg-[#f2e8da] text-[#5A3E1B] px-2 py-1 rounded-md inline-block">

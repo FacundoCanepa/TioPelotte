@@ -20,6 +20,7 @@ export async function PUT(
 
     const data = {
       ingredienteName: body.ingredienteName,
+      ingredienteNameProducion: body.ingredienteNameProducion,
       Stock: body.Stock,
       unidadMedida: body.unidadMedida,
       precio: body.precio,

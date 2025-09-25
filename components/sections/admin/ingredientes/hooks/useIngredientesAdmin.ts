@@ -23,6 +23,7 @@ export function useIngredientesAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<IngredientType>>({
     ingredienteName: '',
+    ingredienteNameProducion: '',
     Stock: 0,
     unidadMedida: 'kg',
     precio: 0,
@@ -45,6 +46,7 @@ export function useIngredientesAdmin() {
 
       const payload = {
         ingredienteName: form.ingredienteName,
+        ingredienteNameProducion: form.ingredienteNameProducion,
         Stock: form.Stock,
         unidadMedida: form.unidadMedida,
         precio: form.precio,
@@ -99,6 +101,7 @@ export function useIngredientesAdmin() {
     setForm({
       id: i.id,
       ingredienteName: i.ingredienteName,
+      ingredienteNameProducion: i.ingredienteNameProducion,
       Stock: i.Stock,
       unidadMedida: i.unidadMedida,
       precio: i.precio,
@@ -113,10 +116,11 @@ export function useIngredientesAdmin() {
 
   const startNew = () => {
     setForm({
-    ingredienteName: '',
-    Stock: 0,
-    unidadMedida: 'kg',
-    precio: 0,
+      ingredienteName: '',
+      ingredienteNameProducion: '',
+      Stock: 0,
+      unidadMedida: 'kg',
+      precio: 0,
     categoria_ingrediente: undefined,
     quantityNeto: null,
     validFrom: new Date().toISOString(),
@@ -128,7 +132,12 @@ export function useIngredientesAdmin() {
   const ingredientes = data?.items || [];
 
   const filteredAndSortedIngredientes = ingredientes
-    .filter(i => i.ingredienteName?.toLowerCase().includes(search.toLowerCase()))
+    .filter(i => {
+      const term = search.toLowerCase();
+      const name = i.ingredienteName?.toLowerCase() ?? '';
+      const productionName = i.ingredienteNameProducion?.toLowerCase() ?? '';
+      return name.includes(term) || productionName.includes(term);
+    })
     .filter(i => (filterUnidad === 'all' ? true : i.unidadMedida === filterUnidad))
     .filter(i =>
       filterCategoria === 'all'

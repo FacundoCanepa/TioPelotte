@@ -196,6 +196,11 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     ? attributes.name
     : "";
 
+  const ingredienteNameProducion =
+    typeof attributes.ingredienteNameProducion === "string"
+      ? attributes.ingredienteNameProducion
+      : null;
+
   const unidadMedida = typeof attributes.unidadMedida === "string"
     ? attributes.unidadMedida
     : typeof attributes.unit === "string"
@@ -218,6 +223,7 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     id,
     documentId,
     ingredienteName,
+    ingredienteNameProducion,
     Stock: normalizeNumber(attributes.Stock),
     unidadMedida,
     quantityNeto,

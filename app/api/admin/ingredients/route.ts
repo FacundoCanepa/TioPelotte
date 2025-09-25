@@ -205,6 +205,7 @@ export async function POST(req: NextRequest) {
 
     const ingredientData = {
       ingredienteName: body.ingredienteName,
+      ingredienteNameProducion: body.ingredienteNameProducion,
       Stock: body.Stock,
       unidadMedida: unidadMedidaValue,
       quantityNeto: quantityNetoValue,
