@@ -231,6 +231,9 @@ export async function POST(req: NextRequest) {
       ingrediente: newIngredientId,
       supplier: buildSingleRelation(body.supplier),
       categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente), // This was the missing field
+      validFrom: typeof body.validFrom === "string" && body.validFrom.trim() !== ""
+        ? body.validFrom
+        : new Date().toISOString(),
     };
 
     await createIngredientSupplierPrice(priceData);

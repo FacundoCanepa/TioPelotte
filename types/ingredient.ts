@@ -11,7 +11,8 @@ export type IngredientType = {
   quantityNeto?: number | null;
   precio: number;
   stockUpdatedAt?: string | null;
-  categoria_ingrediente: Category
+  updatedAt?: string | null;
+  categoria_ingrediente: Category;
   supplier?: SupplierType;
   minOrderQty?: number;
   validFrom?: string;

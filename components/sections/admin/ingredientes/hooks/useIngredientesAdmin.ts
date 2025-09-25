@@ -15,6 +15,27 @@ export function useIngredientesAdmin() {
   const [filterCategoria, setFilterCategoria] = useState<number | 'all'>('all');
   const [filterLowStock, setFilterLowStock] = useState(false);
 
+  const todayInputValue = () => new Date().toISOString().split('T')[0];
+  const normalizeDateInput = (value?: string | null) => {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return todayInputValue();
+    }
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+      return value.trim();
+    }
+    return todayInputValue();
+  };
+  const toISOStringOrNull = (value?: string | null) => {
+    if (typeof value !== 'string' || value.trim() === '') return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
+  };
+
   const [orderBy, setOrderBy] = useState({
     field: 'ingredienteName' as keyof IngredientType,
     direction: 'asc' as 'asc' | 'desc',
@@ -29,7 +50,7 @@ export function useIngredientesAdmin() {
     precio: 0,
     categoria_ingrediente: undefined,
     quantityNeto: null,
-    validFrom: new Date().toISOString(),
+    validFrom: todayInputValue(),
     supplier: undefined,
   });
 
@@ -44,6 +65,7 @@ export function useIngredientesAdmin() {
     try {
       const isNew = !form.id;
 
+      const validFromISO = toISOStringOrNull(form.validFrom) ?? new Date().toISOString();
       const payload = {
         ingredienteName: form.ingredienteName,
         ingredienteNameProducion: form.ingredienteNameProducion,
@@ -54,7 +76,7 @@ export function useIngredientesAdmin() {
         stockUpdatedAt: new Date().toISOString(),
         categoria_ingrediente: form.categoria_ingrediente,
         quantityNeto: form.quantityNeto,
-        validFrom: form.validFrom,
+        validFrom: validFromISO,
         supplier: form.supplier,
       };
 
@@ -108,7 +130,7 @@ export function useIngredientesAdmin() {
       documentId: i.documentId,
       categoria_ingrediente: i.categoria_ingrediente,
       quantityNeto: i.quantityNeto,
-      validFrom: i.validFrom,
+      validFrom: normalizeDateInput(i.validFrom),
       supplier: i.supplier,
     });
     setShowForm(true);
@@ -121,10 +143,10 @@ export function useIngredientesAdmin() {
       Stock: 0,
       unidadMedida: 'kg',
       precio: 0,
-    categoria_ingrediente: undefined,
-    quantityNeto: null,
-    validFrom: new Date().toISOString(),
-    supplier: undefined,
+      categoria_ingrediente: undefined,
+      quantityNeto: null,
+      validFrom: todayInputValue(),
+      supplier: undefined,
     });
     setShowForm(true);
   };

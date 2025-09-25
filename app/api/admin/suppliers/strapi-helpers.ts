@@ -175,6 +175,52 @@ export function mapCategoryFromStrapi(node: unknown): Category | undefined {
   };
 }
 
+function mapSupplierSummaryFromStrapi(node: unknown): SupplierType | undefined {
+  const entry = normalizeEntity(node);
+  if (!entry) return undefined;
+  const attributes = isRecord(entry.attributes) ? entry.attributes : entry;
+
+  const idValue = "id" in entry ? entry.id : attributes.id;
+  const id = normalizeNumber(idValue);
+
+  const docSource = attributes.documentId ?? entry.documentId;
+  const documentId = typeof docSource === "string" && docSource.trim() !== ""
+    ? docSource.trim()
+    : id
+    ? String(id)
+    : "";
+  if (!documentId) return undefined;
+
+  const nameValue = attributes.name ?? attributes.nombre;
+  const name = typeof nameValue === "string" ? nameValue : "";
+
+  const phoneValue = attributes.phone ?? entry.phone;
+  const phone =
+    typeof phoneValue === "string"
+      ? phoneValue.trim() === "" ? null : phoneValue.trim()
+      : phoneValue != null
+      ? String(phoneValue)
+      : null;
+
+  const activeValue = attributes.active ?? entry.active;
+  const active =
+    typeof activeValue === "boolean"
+      ? activeValue
+      : activeValue == null
+      ? null
+      : Boolean(activeValue);
+
+  return {
+    id,
+    documentId,
+    name,
+    phone,
+    active,
+    ingredientes: [],
+    ingredient_supplier_prices: [],
+  };
+}
+
 export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
   if (!isRecord(entry)) return null;
   const attributes = isRecord(entry.attributes) ? entry.attributes : entry;
@@ -207,18 +253,49 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     ? attributes.unit
     : "";
 
+  const updatedAt = typeof attributes.updatedAt === "string"
+    ? attributes.updatedAt
+    : typeof attributes.updated_at === "string"
+    ? attributes.updated_at
+    : null;
+
   const stockUpdatedAt = typeof attributes.stockUpdatedAt === "string"
     ? attributes.stockUpdatedAt
     : typeof attributes.stock_updated_at === "string"
     ? attributes.stock_updated_at
-    : null;
+    : updatedAt;
 
   const quantityNetoValue = attributes.quantityNeto ?? attributes.quantity_neto;
   const quantityNeto = toNumberOrNull(quantityNetoValue);
 
-    const rawCategory = attributes.categoria_ingrediente ?? entry.categoria_ingrediente;
-    const categoria_ingrediente = mapCategoryFromStrapi(rawCategory);
-  
+  const rawCategory = attributes.categoria_ingrediente ?? entry.categoria_ingrediente;
+  const categoria_ingrediente = mapCategoryFromStrapi(rawCategory);
+
+  const supplierNode = attributes.supplier ?? entry.supplier;
+  const supplier = mapSupplierSummaryFromStrapi(supplierNode);
+
+  const directValidFrom = attributes.validFrom ?? attributes.valid_from;
+  let validFrom: string | undefined;
+  if (typeof directValidFrom === "string" && directValidFrom.trim() !== "") {
+    validFrom = directValidFrom;
+  } else {
+    const priceRelations = extractRelationArray(
+      attributes.ingredient_supplier_prices ?? entry.ingredient_supplier_prices
+    );
+    for (const priceNode of priceRelations) {
+      const normalizedPrice = normalizeEntity(priceNode);
+      if (!normalizedPrice) continue;
+      const priceAttributes = isRecord(normalizedPrice.attributes)
+        ? normalizedPrice.attributes
+        : normalizedPrice;
+      const rawValidFrom = priceAttributes?.validFrom ?? priceAttributes?.valid_from;
+      if (typeof rawValidFrom === "string" && rawValidFrom.trim() !== "") {
+        validFrom = rawValidFrom;
+        break;
+      }
+    }
+  }
+
     const ingredient: IngredientType = {
     id,
     documentId,
@@ -229,7 +306,10 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     quantityNeto,
     precio: normalizeNumber(attributes.precio ?? attributes.price),
     stockUpdatedAt,
-    categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category)
+    updatedAt,
+    categoria_ingrediente: categoria_ingrediente ?? (undefined as unknown as Category),
+    supplier,
+    validFrom,
   };
   return ingredient;
 }

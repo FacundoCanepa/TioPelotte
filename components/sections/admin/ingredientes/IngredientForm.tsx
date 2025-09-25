@@ -17,6 +17,18 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
   const { data: suppliers, isLoading: isLoadingSuppliers } = useGetSuppliers();
   const { data: categories, isLoading: isLoadingCategories } = useGetIngredientCategories();
   const categoryItems: Category[] = Array.isArray(categories) ? categories : categories?.items ?? [];
+  const todayValue = new Date().toISOString().split('T')[0];
+  const validFromValue = (() => {
+    if (!form.validFrom) return todayValue;
+    const parsed = new Date(form.validFrom);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+    if (typeof form.validFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(form.validFrom.trim())) {
+      return form.validFrom.trim();
+    }
+    return todayValue;
+  })();
   return (
     <div className="bg-white p-4 rounded-xl shadow space-y-4 max-w-md">
       <div className="space-y-1">
@@ -134,7 +146,7 @@ export default function IngredientForm({ form, setForm, onSave }: Props) {
         <label className="text-sm font-semibold text-[#5A3E1B]">Válido desde</label>
         <input
           type="date"
-          value={form.validFrom ? new Date(form.validFrom).toISOString().split('T')[0] : ''}
+          value={validFromValue}
           onChange={e => setForm({ ...form, validFrom: e.target.value })}
           className="border p-2 rounded w-full"
         />

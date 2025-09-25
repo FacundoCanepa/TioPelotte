@@ -16,6 +16,13 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
   const [showPrices, setShowPrices] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientType | null>(null);
 
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString('es-AR');
+  };
+
   const handleSort = (field: keyof IngredientType) => {
     const newDirection = orderBy.field === field && orderBy.direction === 'asc' ? 'desc' : 'asc';
     setOrderBy({ field, direction: newDirection });
@@ -46,6 +53,9 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
             <th className="p-3 text-left cursor-pointer" onClick={() => handleSort('precio')}>
               Precio <ArrowUpDown className="inline h-3 w-3 ml-1" />
             </th>
+            <th className="p-3 text-left">Cantidad neta</th>
+            <th className="p-3 text-left">Proveedor</th>
+            <th className="p-3 text-left">Categoría</th>
             <th className="p-3 text-left">Actualizado</th>
             <th className="p-3 text-center">Acciones</th>
           </tr>
@@ -69,9 +79,10 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
                 {i.unidadMedida}
               </td>
               <td className="p-3 font-semibold">${i.precio.toLocaleString('es-AR')}</td>
-              <td className="p-3 text-xs text-gray-500">
-                {i.stockUpdatedAt ? new Date(i.stockUpdatedAt).toLocaleString('es-AR') : '-'}
-              </td>
+              <td className="p-3">{i.quantityNeto != null ? i.quantityNeto.toLocaleString('es-AR') : '-'}</td>
+              <td className="p-3">{i.supplier?.name ?? '-'}</td>
+              <td className="p-3">{i.categoria_ingrediente?.nombre ?? '-'}</td>
+              <td className="p-3 text-xs text-gray-500">{formatDateTime(i.updatedAt ?? i.stockUpdatedAt ?? null)}</td>
               <td className="p-3 text-center flex justify-center gap-3">
                 <button
                   onClick={() => handleOpenPrices(i)}

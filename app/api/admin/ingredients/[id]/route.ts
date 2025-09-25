@@ -3,6 +3,56 @@ import { NextRequest, NextResponse } from "next/server";
 const backend = process.env.NEXT_PUBLIC_BACKEND_URL!;
 const token = process.env.STRAPI_PEDIDOS_TOKEN!;
 
+type RelationInput =
+  | number
+  | string
+  | {
+      id?: number | string | null;
+      documentId?: string | null;
+    }
+  | null
+  | undefined;
+
+function buildSingleRelation(value: RelationInput) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const numericValue = Number(trimmed);
+    if (!Number.isNaN(numericValue)) {
+      return numericValue;
+    }
+
+    return { connect: [{ documentId: trimmed }] };
+  }
+
+  if (typeof value === 'object') {
+    if (value.id !== undefined && value.id !== null) {
+      return buildSingleRelation(value.id as RelationInput);
+    }
+
+    if (value.documentId) {
+      return { connect: [{ documentId: value.documentId }] };
+    }
+  }
+
+  return undefined;
+}
+
 export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -25,6 +75,8 @@ export async function PUT(
       unidadMedida: body.unidadMedida,
       precio: body.precio,
       quantityNeto: quantityNetoValue,
+      categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente),
+      supplier: buildSingleRelation(body.supplier),
     };
 
     const res = await fetch(`${backend}/api/ingredientes/${id}`, {
