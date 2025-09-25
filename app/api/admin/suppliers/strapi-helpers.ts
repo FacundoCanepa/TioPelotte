@@ -319,9 +319,12 @@ function mapPriceInternal(
   const fallbackUnit = ingrediente?.unidadMedida?.trim?.() ?? "";
   const resolvedUnit = trimmedUnit || fallbackUnit;
 
+  const ingredientQuantity = toNumberOrNull(ingrediente?.quantityNeto);
+  const quantityForNormalization = quantityNeto !== null ? quantityNeto : ingredientQuantity;
+
   const { value: precioUnitarioBase, unidadBase } =
-    quantityNeto !== null && resolvedUnit
-      ? computePrecioUnitarioBase(unitPrice, quantityNeto, resolvedUnit)
+    quantityForNormalization !== null && resolvedUnit
+      ? computePrecioUnitarioBase(unitPrice, quantityForNormalization, resolvedUnit)
       : { value: null, unidadBase: getUnidadBase(resolvedUnit) };
 
   const base: IngredientSupplierPrice = {

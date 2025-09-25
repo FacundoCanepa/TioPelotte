@@ -185,9 +185,13 @@ export function AddSupplierPriceModal({
     const rawQuantityInput = form.quantityNeto.trim();
     const hasQuantityInput = rawQuantityInput !== "";
     const normalizedQuantityString = hasQuantityInput ? rawQuantityInput.replace(/,/g, ".") : "";
-    const parsedQuantity = hasQuantityInput ? Number(normalizedQuantityString) : null;
+    let parsedQuantity: number | null = null;
+    if (hasQuantityInput) {
+      const parsedValue = Number(normalizedQuantityString);
+      parsedQuantity = Number.isFinite(parsedValue) ? parsedValue : null;
+    }
 
-    if (hasQuantityInput && (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0)) {
+    if (hasQuantityInput && (parsedQuantity === null || parsedQuantity <= 0)) {
       setQuantityError("Indicá una cantidad neta mayor a 0");
       return;
     }
@@ -227,7 +231,7 @@ export function AddSupplierPriceModal({
         unitPrice: Number(form.unitPrice),
         currency: normalizeCurrency(form.currency),
         unit: normalizedUnitInput,
-        quantityNeto: parsedQuantity ?? undefined,
+        quantityNeto: hasQuantityInput ? parsedQuantity ?? undefined : undefined,
         minOrderQty: minOrderQtyValue,
         validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : null,
         ingrediente: selectedIngredient
