@@ -9,7 +9,8 @@ function buildStrapiListURL(searchParams: URLSearchParams) {
   const categoryId = (searchParams.get("categoryId") || "").trim();
   const sp = new URLSearchParams();
 
-  sp.set("populate", "*");
+  // More specific population to avoid issues with overly broad queries
+  sp.set("populate", "categoria_ingrediente,supplier");
 
   if (q) {
     sp.set("filters[ingredienteName][$containsi]", q);
