@@ -193,11 +193,15 @@ async function createIngredientSupplierPrice(data: any) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const normalizeString = (value: unknown) =>
+      typeof value === "string" ? value.trim() : "";
+
+    const unidadMedidaValue = normalizeString(body.unidadMedida);
 
     const ingredientData = {
       ingredienteName: body.ingredienteName,
       Stock: body.Stock,
-      unidadMedida: body.unidadMedida,
+      unidadMedida: unidadMedidaValue,
       categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente),
       supplier: buildSingleRelation(body.supplier),
       precio: body.precio,
@@ -209,11 +213,14 @@ export async function POST(req: NextRequest) {
     if (!newIngredientId) {
       throw new Error("Ingredient creation did not return a valid ID.");
     }
+    const createdAttributes = createdIngredientResponse?.data?.attributes;
+    const unitFromResponse = normalizeString(createdAttributes?.unidadMedida);
+    const resolvedUnit = unitFromResponse || unidadMedidaValue;
 
     const priceData = {
       unitPrice: body.precio,
       currency: "ARS",
-      unit: body.unidadMedida,
+      unit: resolvedUnit,
       ingrediente: newIngredientId,
       supplier: buildSingleRelation(body.supplier),
       categoria_ingrediente: buildSingleRelation(body.categoria_ingrediente), // This was the missing field
