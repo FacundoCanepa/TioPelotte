@@ -94,7 +94,7 @@ export function IngredientPricesModal({
         }
 
         const res = await fetch(
-          `/api/admin/ingredients/cheapest-by-category?${params.toString()}`,
+          `/api/admin/cheapest-by-category?${params.toString()}`,
           { cache: "no-store" }
         );
 
