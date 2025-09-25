@@ -214,7 +214,7 @@ export function mapIngredientFromStrapi(entry: unknown): IngredientType | null {
     id,
     documentId,
     ingredienteName,
-    stock: normalizeNumber(attributes.stock),
+    Stock: normalizeNumber(attributes.Stock),
     unidadMedida,
     precio: normalizeNumber(attributes.precio ?? attributes.price),
     stockUpdatedAt,
