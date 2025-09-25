@@ -27,11 +27,12 @@ function isLikelyDocIdString(value: unknown): value is string {
 }
 
 export function buildPriceListPath(searchParams: URLSearchParams) {
-  const params = new URLSearchParams(searchParams);
+  const params = new URLSearchParams();
 
-  if (!params.has("populate")) {
-    params.set("populate", PRICE_POPULATE);
-  }
+  // Use object-based populate syntax for clarity and to avoid issues
+  params.set("populate[ingrediente][populate]", "categoria_ingrediente");
+  params.set("populate[supplier]", "*");
+
 
   const ingredientId = searchParams.get("ingredientId");
   if (ingredientId) {
@@ -67,6 +68,18 @@ export function buildPriceListPath(searchParams: URLSearchParams) {
         params.set("filters[ingrediente][categoria_ingrediente][id][$eq]", trimmed);
       }
     }
+  }
+  
+  const page = searchParams.get('page') ?? '1';
+  const pageSize = searchParams.get('pageSize') ?? '10';
+
+  params.set("pagination[page]", page);
+  params.set("pagination[pageSize]", pageSize);
+
+
+  const sort = searchParams.get('sort');
+  if (sort) {
+    params.set('sort', sort);
   }
 
   return `/api/ingredient-supplier-prices?${params.toString()}`;
