@@ -1,5 +1,5 @@
-import { IngredientType } from "./ingredient";
-import { SupplierType } from "./supplier";
+import type { IngredientType } from "./ingredient";
+import type { SupplierType } from "./supplier";
 import {Category} from "./categoria_ingrediente"
 
 export type IngredientSupplierPrice = {

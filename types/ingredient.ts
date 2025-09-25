@@ -1,5 +1,5 @@
 import {Category} from "./categoria_ingrediente"
-import { SupplierType } from "./supplier";
+import type { SupplierType } from "./supplier";
 
 export type IngredientType = {
   id: number;
