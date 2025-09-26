@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { listFabricaciones } from "@/lib/admin/fabricacion-api";
+import { Fabricacion } from "@/types/fabricacion";
 import {
   Card,
   CardContent,
@@ -9,174 +12,237 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const STATUS_LABELS = {
-  pending: "Pendiente",
-  running: "En proceso",
-  completed: "Completado",
-} as const;
+type SortKey = "margin" | "cost" | "name";
 
-const STATUS_STYLES: Record<keyof typeof STATUS_LABELS, string> = {
-  pending: "bg-amber-100 text-amber-800 border border-amber-200",
-  running: "bg-sky-100 text-sky-800 border border-sky-200",
-  completed: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-};
+const currencyFormatter = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+  maximumFractionDigits: 0,
+});
 
-const MOCK_ORDERS = [
-  {
-    id: "FAB-001",
-    recipe: "Tortas Selva Negra",
-    quantity: 12,
-    status: "pending" as const,
-    scheduledFor: "09:00",
-    responsible: "Carla Ríos",
-  },
-  {
-    id: "FAB-002",
-    recipe: "Budines de Nuez",
-    quantity: 20,
-    status: "running" as const,
-    scheduledFor: "11:00",
-    responsible: "Juan Pérez",
-  },
-  {
-    id: "FAB-003",
-    recipe: "Cookies de Chocolate",
-    quantity: 150,
-    status: "completed" as const,
-    scheduledFor: "Ayer",
-    responsible: "Equipo B",
-  },
-];
+const numberFormatter = new Intl.NumberFormat("es-AR", {
+  maximumFractionDigits: 0,
+});
 
-type StatusFilter = "all" | keyof typeof STATUS_LABELS;
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "-";
+  return currencyFormatter.format(value);
+}
+
+function formatPercent(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "-";
+  return `${value.toFixed(1)} %`;
+}
+
+function computeUnitCost(item: Fabricacion): number {
+  if (item.costoUnitario !== null && item.costoUnitario !== undefined && !Number.isNaN(item.costoUnitario)) {
+    return item.costoUnitario;
+  }
+  if (item.batchSize > 0) {
+    return item.costoTotalBatch / item.batchSize;
+  }
+  return item.costoTotalBatch;
+}
+
+function computeMargin(item: Fabricacion): number {
+  const unitCost = computeUnitCost(item);
+  if (!item.precioSugerido || item.precioSugerido <= 0) return 0;
+  const margin = ((item.precioSugerido - unitCost) / item.precioSugerido) * 100;
+  return Number.isFinite(margin) ? margin : 0;
+}
 
 export default function FabricacionSection() {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("margin");
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["fabricaciones"],
+    queryFn: () => listFabricaciones(),
+  });
 
-  const stats = useMemo(() => {
-    const totals = MOCK_ORDERS.reduce(
-      (acc, order) => {
-        acc.total++;
-        acc[order.status]++;
-        return acc;
-      },
-      { total: 0, pending: 0, running: 0, completed: 0 }
-    );
+  const fabricaciones = useMemo(() => data?.items ?? [], [data]);
 
-    return [
-      { label: "Órdenes totales", value: totals.total },
-      { label: "Pendientes", value: totals.pending },
-      { label: "En proceso", value: totals.running },
-      { label: "Completadas", value: totals.completed },
-    ];
-  }, []);
-
-  const filteredOrders = useMemo(() => {
-    if (statusFilter === "all") {
-      return MOCK_ORDERS;
+  const resumen = useMemo(() => {
+    if (!fabricaciones.length) {
+      return {
+        totalCost: 0,
+        avgMargin: 0,
+        totalBatches: 0,
+        avgUnitCost: 0,
+      };
     }
 
-    return MOCK_ORDERS.filter((order) => order.status === statusFilter);
-  }, [statusFilter]);
+    const totals = fabricaciones.reduce(
+      (acc, item) => {
+        const unitCost = computeUnitCost(item);
+        const margin = computeMargin(item);
+        acc.totalCost += item.costoTotalBatch;
+        acc.avgMargin += margin;
+        acc.totalBatches += item.batchSize;
+        acc.avgUnitCost += unitCost;
+        return acc;
+      },
+      { totalCost: 0, avgMargin: 0, totalBatches: 0, avgUnitCost: 0 }
+    );
+
+    return {
+      totalCost: totals.totalCost,
+      avgMargin: totals.avgMargin / fabricaciones.length,
+      totalBatches: totals.totalBatches,
+      avgUnitCost: totals.avgUnitCost / fabricaciones.length,
+    };
+  }, [fabricaciones]);
+
+  const sortedFabricaciones = useMemo(() => {
+    const copy = [...fabricaciones];
+    switch (sortKey) {
+      case "cost":
+        return copy.sort((a, b) => computeUnitCost(b) - computeUnitCost(a));
+      case "name":
+        return copy.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      case "margin":
+      default:
+        return copy.sort((a, b) => computeMargin(b) - computeMargin(a));
+    }
+  }, [fabricaciones, sortKey]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 p-4">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-neutral-900">
-          Centro de fabricación
-        </h1>
+        <h1 className="text-3xl font-semibold text-neutral-900">Centro de fabricación</h1>
         <p className="text-sm text-neutral-500">
-          Controla el estado de tus órdenes de producción y prioriza las tareas
-          del día.
+          Conecta tus recetas con costos reales para entender cuánto cuesta producir cada lote y qué margen estás obteniendo.
         </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-2xl font-semibold text-neutral-900">
-                {stat.value}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Órdenes de fabricación</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-neutral-900">{numberFormatter.format(fabricaciones.length)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Costo total estimado</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatCurrency(resumen.totalCost)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Costo unitario promedio</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatCurrency(resumen.avgUnitCost)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Margen promedio</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatPercent(resumen.avgMargin)}</CardTitle>
+          </CardHeader>
+        </Card>
       </section>
 
       <Card>
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-xl">Órdenes de producción</CardTitle>
+            <CardTitle className="text-xl">Detalle de costos por fabricación</CardTitle>
             <CardDescription>
-              Filtra las órdenes por estado para organizar la planificación.
+              Analizá cada receta para ajustar tus precios y lograr el margen objetivo.
             </CardDescription>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            {["all", "pending", "running", "completed"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status as StatusFilter)}
-                className={
-                  "rounded-full border px-3 py-1 text-sm transition-colors" +
-                  (statusFilter === status
-                    ? " border-amber-400 bg-amber-50 text-amber-700"
-                    : " border-neutral-200 text-neutral-500 hover:bg-neutral-50")
-                }
-                type="button"
-              >
-                {status === "all" ? "Todas" : STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
-              </button>
-            ))}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <label className="text-sm font-medium text-neutral-500" htmlFor="fabricacion-sort">
+              Ordenar por
+            </label>
+            <select
+              id="fabricacion-sort"
+              value={sortKey}
+              onChange={(event) => setSortKey(event.target.value as SortKey)}
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 shadow-sm focus:border-amber-400 focus:outline-none"
+            >
+              <option value="margin">Margen de ganancia</option>
+              <option value="cost">Costo unitario</option>
+              <option value="name">Nombre</option>
+            </select>
           </div>
         </CardHeader>
 
         <CardContent className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-neutral-200 text-sm">
-            <thead>
-              <tr className="text-left text-neutral-500">
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Orden</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Receta</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Cantidad</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Responsable</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Programado</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-neutral-400">
-                    No hay órdenes con el estado seleccionado.
-                  </td>
+          {isLoading ? (
+            <div className="flex h-48 items-center justify-center text-sm text-neutral-500">
+              Cargando información de fabricación...
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <p className="font-medium">No pudimos traer los datos de fabricación.</p>
+              <p className="text-red-600">{error instanceof Error ? error.message : "Intenta nuevamente en unos minutos."}</p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="self-start rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+              >
+                Reintentar
+              </button>
+            </div>
+          ) : fabricaciones.length === 0 ? (
+            <div className="flex h-48 items-center justify-center text-sm text-neutral-500">
+              No hay órdenes de fabricación registradas todavía.
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-neutral-200 text-sm">
+              <thead>
+                <tr className="text-left text-neutral-500">
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Nombre</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Producto</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Batch</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo ingredientes</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo total</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo unitario</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Precio sugerido</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Margen estimado</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Margen objetivo</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Último cálculo</th>
                 </tr>
-              ) : (
-                filteredOrders.map((order) => (
-                  <tr key={order.id} className="text-neutral-700">
-                    <td className="whitespace-nowrap px-3 py-3 font-medium">
-                      {order.id}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3">{order.recipe}</td>
-                    <td className="whitespace-nowrap px-3 py-3">{order.quantity}</td>
-                    <td className="whitespace-nowrap px-3 py-3">{order.responsible}</td>
-                    <td className="whitespace-nowrap px-3 py-3">{order.scheduledFor}</td>
-                    <td className="whitespace-nowrap px-3 py-3">
-                      <span
-                        className={
-                          "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium " +
-                          STATUS_STYLES[order.status]
-                        }
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {sortedFabricaciones.map((item) => {
+                  const unitCost = computeUnitCost(item);
+                  const margin = computeMargin(item);
+                  return (
+                    <tr key={item.documentId} className="text-neutral-700">
+                      <td className="whitespace-nowrap px-3 py-3 font-medium">
+                        <div className="flex flex-col">
+                          <span>{item.nombre}</span>
+                          {item.lineas && item.lineas.length > 0 && (
+                            <span className="text-xs text-neutral-500">
+                              {item.lineas.length} ingredientes en la fórmula
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {item.product?.productName ?? "Sin producto asociado"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{numberFormatter.format(item.batchSize)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(item.ingredientesCostoTotal)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(item.costoTotalBatch)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(unitCost)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(item.precioSugerido)}</td>
+                      <td
+                        className={`whitespace-nowrap px-3 py-3 text-right font-medium ${
+                          margin >= item.margenObjetivoPct ? "text-emerald-600" : "text-amber-600"
+                        }`}
                       >
-                        <span className="size-2 rounded-full bg-current opacity-80" />
-                        {STATUS_LABELS[order.status]}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                        {formatPercent(margin)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right">{formatPercent(item.margenObjetivoPct)}</td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {item.lastCalculatedAt ? new Date(item.lastCalculatedAt).toLocaleDateString("es-AR") : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
     </div>

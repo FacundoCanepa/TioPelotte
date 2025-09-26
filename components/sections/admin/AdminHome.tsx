@@ -1,6 +1,6 @@
 "use client";
 import { useUserStore } from "@/store/user-store";
-import { BarChart2, Boxes, UtensilsCrossed, Wheat, Users, BookOpen } from "lucide-react";
+import { BarChart2, Boxes, UtensilsCrossed, Wheat, Users, BookOpen, Factory } from "lucide-react";
 import AdminCard from "./AdminCard";
 
 export default function AdminHome() {
@@ -18,6 +18,7 @@ export default function AdminHome() {
         <AdminCard href="/admin/productos" title="Productos" icon={<UtensilsCrossed className="h-8 w-8" />} />
         <AdminCard href="/admin/ingredientes" title="Ingredientes" icon={<Wheat className="h-8 w-8" />} />
         <AdminCard href="/admin/recetas" title="Recetas" icon={<BookOpen className="h-8 w-8" />} />
+        <AdminCard href="/admin/fabricacion" title="Fabricación" icon={<Factory className="h-8 w-8" />} />
         {isAdmin && (
           <AdminCard href="/admin/usuarios" title="Usuarios" icon={<Users className="h-8 w-8" />} />
         )}
