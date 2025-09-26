@@ -32,7 +32,10 @@ export type ProductType = {
   };
 
   ingredientes?: {
+    id?: number;
+    documentId?: string;
     ingredienteName: string;
+    ingredienteNameProducion?: string | null;
   }[];
 
   porciones?: string;

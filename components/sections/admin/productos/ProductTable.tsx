@@ -111,6 +111,7 @@ export default function ProductTable({ productos, onEdit, onDelete, orderBy, set
             <th className="p-3 text-left">Porciones</th>
             <th className="p-3 text-left">Tiempo</th>
             <th className="p-3 text-left">Categoría</th>
+            <th className="p-3 text-left">Ingredientes</th>
             <th className="p-3 text-center">Oferta</th>
             <th className="p-3 text-center">Destacado</th>
             <th className="p-3 text-center">Activo</th>
@@ -200,6 +201,35 @@ export default function ProductTable({ productos, onEdit, onDelete, orderBy, set
                 {/* Categoría */}
                 <td className="p-3 text-xs font-medium text-[#5A3E1B]">
                   {p.category?.categoryNames?.trim() || "-"}
+                </td>
+
+                {/* Ingredientes */}
+                <td className="p-3 align-top text-xs">
+                  {Array.isArray(p.ingredientes) && p.ingredientes.length > 0 ? (
+                    <ul className="space-y-1">
+                      {p.ingredientes.map((ingrediente) => (
+                        <li
+                          key={
+                            ingrediente.documentId ||
+                            ingrediente.id ||
+                            ingrediente.ingredienteName
+                          }
+                          className="rounded-md bg-[#f2e8da]/60 px-2 py-1"
+                        >
+                          <span className="block font-medium capitalize text-[#4A2E15]">
+                            {ingrediente.ingredienteName}
+                          </span>
+                          {ingrediente.ingredienteNameProducion && (
+                            <span className="block text-[11px] font-normal text-[#8a6a45]">
+                              {ingrediente.ingredienteNameProducion}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-[#8a6a45]">-</span>
+                  )}
                 </td>
 
                 {/* Flags */}
