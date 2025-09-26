@@ -10,6 +10,7 @@ import { useSuppliersAdmin } from "./hooks/useSuppliersAdmin";
 import { useLowStockIngredients } from "@/components/hooks/useLowStockIngredients";
 import { formatIngredientStockLabel } from "@/lib/inventory";
 import { toast } from "sonner";
+import { WhatsAppMessageDialog } from "@/components/ui/WhatsAppMessageDialog";
 
 export default function SuppliersSection() {
   const {
@@ -50,8 +51,12 @@ export default function SuppliersSection() {
   const canSendLowStockMessage =
     !loadingLowStock && lowStockIngredientes.length > 0 && !lowStockError;
 
+  const [messageDialogData, setMessageDialogData] = useState<
+    { supplier: SupplierType; message: string } | null
+  >(null);
+
   const handleSendMessage = useCallback(
-    async (supplier: SupplierType) => {
+    (supplier: SupplierType) => {
       if (loadingLowStock || refreshingLowStock) {
         toast.info("Todavía estamos cargando el stock actual.");
         return;
@@ -69,48 +74,7 @@ export default function SuppliersSection() {
 
       const defaultMessage = `Hola, ¿cómo va ${supplier.name}? Te quería encargar ${lowStockListForMessage}.`;
 
-      let finalMessage = defaultMessage;
-
-      if (typeof window !== "undefined") {
-        const editedMessage = window.prompt(
-          "Revisá y editá el mensaje antes de enviarlo:",
-          defaultMessage
-        );
-
-        if (editedMessage === null) {
-          toast.info("Mensaje cancelado.");
-          return;
-        }
-
-        finalMessage =
-          editedMessage.trim().length > 0 ? editedMessage : defaultMessage;
-      }
-
-      let copiedToClipboard = false;
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(finalMessage);
-          copiedToClipboard = true;
-          toast.success("Mensaje copiado al portapapeles.");
-        } catch (clipboardError) {
-          console.error("❌ Error copiando el mensaje", clipboardError);
-        }
-      }
-
-      if (!copiedToClipboard && typeof window !== "undefined") {
-        window.prompt(
-          "Copiá el mensaje para enviarlo al proveedor:",
-          finalMessage
-        );
-      }
-
-      if (typeof window !== "undefined" && supplier.phone) {
-        const sanitizedPhone = supplier.phone.replace(/\D+/g, "");
-        if (sanitizedPhone) {
-          const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(finalMessage)}`;
-          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-        }
-      }
+      setMessageDialogData({ supplier, message: defaultMessage });
     },
     [
       loadingLowStock,
@@ -118,7 +82,25 @@ export default function SuppliersSection() {
       lowStockError,
       lowStockIngredientes,
       lowStockListForMessage,
+      setMessageDialogData,
     ]
+  );
+
+  const handleMessageDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setMessageDialogData(null);
+      }
+    },
+    [setMessageDialogData]
+  );
+
+  const handleWhatsAppSent = useCallback(
+    (_finalMessage: string) => {
+      toast.success("Se abrió WhatsApp Web con tu mensaje listo para enviar.");
+      setMessageDialogData(null);
+    },
+    [setMessageDialogData]
   );
 
   const lowStockErrorMessage =
@@ -263,6 +245,14 @@ export default function SuppliersSection() {
         open={showPriceModal}
         onClose={closePriceModal}
         onSuccess={handlePriceSuccess}
+      />
+      <WhatsAppMessageDialog
+        open={Boolean(messageDialogData)}
+        onOpenChange={handleMessageDialogOpenChange}
+        phone={messageDialogData?.supplier.phone ?? ""}
+        suggestedMessage={messageDialogData?.message ?? ""}
+        countryCode="AR"
+        onSent={handleWhatsAppSent}
       />
     </section>
   );
