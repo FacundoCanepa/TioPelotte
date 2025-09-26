@@ -64,7 +64,13 @@ function sanitizeCategoryPayload(body: unknown) {
     documentId: generateSlug(nombre),
   };
 
-  payload.description = description && description.length > 0 ? description : null;
+  if (description && description.length > 0) {
+    payload.description = description;
+    payload.descripcion = description;
+  } else {
+    payload.description = null;
+    payload.descripcion = null;
+  }
 
   return payload;
 }
