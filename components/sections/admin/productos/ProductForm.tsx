@@ -346,6 +346,7 @@ export default function ProductForm({
                 }}
               />
               {ing.ingredienteName}
+              {ing.ingredienteNameProducion ? ` (${ing.ingredienteNameProducion})` : ""}
             </label>
           ))}
         </div>

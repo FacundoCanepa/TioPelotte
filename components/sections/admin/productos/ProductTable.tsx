@@ -218,12 +218,10 @@ export default function ProductTable({ productos, onEdit, onDelete, orderBy, set
                         >
                           <span className="block font-medium capitalize text-[#4A2E15]">
                             {ingrediente.ingredienteName}
+                            {ingrediente.ingredienteNameProducion
+                              ? ` (${ingrediente.ingredienteNameProducion})`
+                              : ""}
                           </span>
-                          {ingrediente.ingredienteNameProducion && (
-                            <span className="block text-[11px] font-normal text-[#8a6a45]">
-                              {ingrediente.ingredienteNameProducion}
-                            </span>
-                          )}
                         </li>
                       ))}
                     </ul>
