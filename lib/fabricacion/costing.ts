@@ -112,7 +112,7 @@ function round2(value: number): number {
 }
 
 function normalizarBaseUnit(unit: QtyUnit | null | undefined, fallback: BaseUnit): BaseUnit {
-  const base = getUnidadBase(typeof unit === "string" ? unit : null);
+  const base = typeof unit === "string" ? getUnidadBase(unit) : null;
   return base ?? fallback;
 }
 
