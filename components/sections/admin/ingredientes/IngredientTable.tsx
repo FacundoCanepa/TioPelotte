@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ArrowUpDown, Pencil, Trash2, AlertTriangle, Eye } from 'lucide-react';
 import { IngredientType } from '@/types/ingredient';
+import { LOW_STOCK_THRESHOLD } from '@/lib/inventory';
 import IngredientPricesModal from './IngredientPricesModal';
 
 interface Props {
@@ -64,7 +65,9 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
           {ingredientes.map(i => (
             <tr key={i.id} className="border-b last:border-none hover:bg-[#FFF8EC] transition">
               <td className="p-3 capitalize font-medium flex items-center gap-2">
-              {i.Stock <= 5 && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                {typeof i.Stock === 'number' && i.Stock <= LOW_STOCK_THRESHOLD && (
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                )}
                 <div className="flex flex-col">
                   <span>{i.ingredienteName}</span>
                   {i.ingredienteNameProducion && (

@@ -1,6 +1,6 @@
 import { IngredientType } from "@/types/ingredient";
 
-export const LOW_STOCK_THRESHOLD = 5;
+export const LOW_STOCK_THRESHOLD = -2;
 
 export function isLowStock(
   ingredient: IngredientType,

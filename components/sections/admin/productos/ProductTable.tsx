@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ArrowUpDown, Pencil, Trash2, Check, AlertTriangle, Star, ImageOff } from "lucide-react";
 import { ProductType } from "@/types/product";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 
 interface Props {
   productos: ProductType[];
@@ -131,7 +132,8 @@ export default function ProductTable({ productos, onEdit, onDelete, orderBy, set
         <tbody>
           {productos.map((p) => {
             const url = getMainImageUrl(p);
-            const lowStock = typeof p.stock === "number" && p.stock <= 5;
+            const lowStock =
+              typeof p.stock === "number" && p.stock <= LOW_STOCK_THRESHOLD;
 
             return (
               <tr

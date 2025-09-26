@@ -11,6 +11,7 @@ import { useProductAdmin } from "./hooks/useProductAdmin";
 import { useImageUpload } from "./hooks/useImageUpload";
 import { ProductType } from "@/types/product";
 import { toMediaURL } from "@/utils/media";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory";
 
 
 const generateSlug = (text: string) =>
@@ -185,7 +186,9 @@ export default function ProductosSection() {
       .filter((p) =>
         filterUnidad === "all" ? true : p.unidadMedida === filterUnidad
       )
-      .filter((p) => (filterLowStock ? (p.stock || 0) <= 5 : true));
+      .filter((p) =>
+        filterLowStock ? (p.stock ?? 0) <= LOW_STOCK_THRESHOLD : true
+      );
   }, [products, search, filterOffer, filterActive, filterUnidad, filterLowStock]);
 
   const sorted = useMemo(() => {

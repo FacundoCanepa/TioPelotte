@@ -67,12 +67,29 @@ export default function SuppliersSection() {
         return;
       }
 
-      const message = `Hola buenas, ¿cómo va ${supplier.name}? Necesito ${lowStockListForMessage}.`;
+      const defaultMessage = `Hola, ¿cómo va ${supplier.name}? Te quería encargar ${lowStockListForMessage}.`;
+
+      let finalMessage = defaultMessage;
+
+      if (typeof window !== "undefined") {
+        const editedMessage = window.prompt(
+          "Revisá y editá el mensaje antes de enviarlo:",
+          defaultMessage
+        );
+
+        if (editedMessage === null) {
+          toast.info("Mensaje cancelado.");
+          return;
+        }
+
+        finalMessage =
+          editedMessage.trim().length > 0 ? editedMessage : defaultMessage;
+      }
 
       let copiedToClipboard = false;
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         try {
-          await navigator.clipboard.writeText(message);
+          await navigator.clipboard.writeText(finalMessage);
           copiedToClipboard = true;
           toast.success("Mensaje copiado al portapapeles.");
         } catch (clipboardError) {
@@ -81,13 +98,16 @@ export default function SuppliersSection() {
       }
 
       if (!copiedToClipboard && typeof window !== "undefined") {
-        window.prompt("Copiá el mensaje para enviarlo al proveedor:", message);
+        window.prompt(
+          "Copiá el mensaje para enviarlo al proveedor:",
+          finalMessage
+        );
       }
 
       if (typeof window !== "undefined" && supplier.phone) {
         const sanitizedPhone = supplier.phone.replace(/\D+/g, "");
         if (sanitizedPhone) {
-          const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+          const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(finalMessage)}`;
           window.open(whatsappUrl, "_blank", "noopener,noreferrer");
         }
       }
