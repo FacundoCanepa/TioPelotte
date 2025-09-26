@@ -49,7 +49,7 @@ export function useProductAdmin() {
     try {
       const res = await fetch("/api/admin/ingredients", { cache: "no-store" });
       const json = await res.json();
-      setIngredientes(Array.isArray(json?.data) ? json.data : []);
+      setIngredientes(Array.isArray(json?.items) ? json.items : []);
     } catch {
       /* ignore */
     }
