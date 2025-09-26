@@ -1,11 +1,12 @@
 // Vercel, please refresh this file! Cache invalidation attempt: 2024-07-16T22:15:00Z
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { IngredientType } from '@/types/ingredient';
 import { toast } from 'sonner';
 import { generateSlug } from '@/lib/utils';
 import { useGetIngredients } from '@/components/hooks/useGetIngredients';
+import { isLowStock, LOW_STOCK_THRESHOLD } from '@/lib/inventory';
 
 export function useIngredientesAdmin() {
   const { data, isLoading, isError, refetch } = useGetIngredients();
@@ -153,6 +154,10 @@ export function useIngredientesAdmin() {
 
   const ingredientes = data?.items || [];
 
+  const lowStockIngredientes = ingredientes
+    .filter(ingredient => isLowStock(ingredient))
+    .sort((a, b) => (a.Stock ?? 0) - (b.Stock ?? 0));
+
   const filteredAndSortedIngredientes = ingredientes
     .filter(i => {
       const term = search.toLowerCase();
@@ -166,7 +171,7 @@ export function useIngredientesAdmin() {
         ? true
         : (i.categoria_ingrediente?.id ?? null) === filterCategoria
     )
-    .filter(i => (filterLowStock ? i.Stock <= 5 : true))
+    .filter(i => (filterLowStock ? isLowStock(i) : true))
     .sort((a, b) => {
       const field = orderBy.field;
       const dir = orderBy.direction === 'asc' ? 1 : -1;
@@ -188,6 +193,8 @@ export function useIngredientesAdmin() {
     ingredientes: filteredAndSortedIngredientes,
     loading: isLoading,
     error: isError,
+    lowStockIngredientes,
+    lowStockThreshold: LOW_STOCK_THRESHOLD,
     search,
     setSearch,
     filterUnidad,

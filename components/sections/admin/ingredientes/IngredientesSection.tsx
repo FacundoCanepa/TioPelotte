@@ -5,6 +5,7 @@ import IngredientFilters from "./IngredientFilters";
 import IngredientForm from "./IngredientForm";
 import IngredientTable from "./IngredientTable";
 import { useIngredientesAdmin } from "./hooks/useIngredientesAdmin";
+import { LowStockSummary } from "./LowStockSummary";
 
 export default function IngredientesSection() {
   const {
@@ -29,6 +30,8 @@ export default function IngredientesSection() {
     editIngrediente,
     deleteIngrediente,
     startNew,
+    lowStockIngredientes,
+    lowStockThreshold,
   } = useIngredientesAdmin();
 
   if (loading) {
@@ -67,6 +70,11 @@ export default function IngredientesSection() {
       {showForm && (
         <IngredientForm form={form} setForm={setForm} onSave={saveIngrediente} />
       )}
+
+      <LowStockSummary
+        ingredientes={lowStockIngredientes}
+        threshold={lowStockThreshold}
+      />
 
       <IngredientTable
         ingredientes={ingredientes}

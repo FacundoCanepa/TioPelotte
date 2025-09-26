@@ -1,12 +1,14 @@
 import { SupplierType } from "@/types/supplier";
 import { formatPrecioUnitario } from "@/lib/pricing/normalize";
-import { CirclePlus, Pencil, Trash2 } from "lucide-react";
+import { CirclePlus, Pencil, Send, Trash2 } from "lucide-react";
 
 interface SupplierTableProps {
   suppliers: SupplierType[];
   onEdit: (supplier: SupplierType) => void;
   onDelete: (supplier: SupplierType) => void;
   onAddPrice: (supplier: SupplierType) => void;
+  onSendMessage: (supplier: SupplierType) => void;
+  disableSendMessage?: boolean;
 }
 
 type CheapestEntry = { normalized: number | null; fallback: number | null };
@@ -14,7 +16,14 @@ type CheapestEntry = { normalized: number | null; fallback: number | null };
 const NORMALIZED_EPSILON = 1e-6;
 const PRICE_EPSILON = 0.01;
 
-export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: SupplierTableProps) {
+export function SupplierTable({
+  suppliers,
+  onEdit,
+  onDelete,
+  onAddPrice,
+  onSendMessage,
+  disableSendMessage = false,
+}: SupplierTableProps) {
   const cheapestPriceByIngredientId = new Map<number, CheapestEntry>();
   const collator = new Intl.Collator("es-ES", { sensitivity: "base" });
 
@@ -285,6 +294,20 @@ export function SupplierTable({ suppliers, onEdit, onDelete, onAddPrice }: Suppl
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-4">
+                      <button
+                        onClick={() => onSendMessage(supplier)}
+                        className={`text-amber-600 transition hover:text-amber-800 ${
+                          disableSendMessage ? "cursor-not-allowed opacity-50 hover:text-amber-600" : ""
+                        }`}
+                        disabled={disableSendMessage}
+                        title={
+                          disableSendMessage
+                            ? "Cargando ingredientes con bajo stock"
+                            : "Enviar mensaje al proveedor"
+                        }
+                      >
+                        <Send className="h-5 w-5" />
+                      </button>
                       <button
                         onClick={() => onAddPrice(supplier)}
                         className="text-emerald-600 transition hover:text-emerald-800"

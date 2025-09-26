@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { SupplierType } from "@/types/supplier";
 import { AddSupplierPriceModal } from "./AddSupplierPriceModal";
 import { SupplierForm } from "./SupplierForm";
 import { SupplierTable } from "./SupplierTable";
 import { useSuppliersAdmin } from "./hooks/useSuppliersAdmin";
+import { useLowStockIngredients } from "@/components/hooks/useLowStockIngredients";
+import { formatIngredientStockLabel } from "@/lib/inventory";
+import { toast } from "sonner";
 
 export default function SuppliersSection() {
   const {
@@ -29,6 +32,85 @@ export default function SuppliersSection() {
     stats,
     refreshSuppliers,
   } = useSuppliersAdmin();
+
+  const {
+    lowStockIngredientes,
+    isLoading: loadingLowStock,
+    isError: lowStockError,
+    error: lowStockErrorData,
+    refetch: refetchLowStock,
+    isFetching: refreshingLowStock,
+  } = useLowStockIngredients();
+
+  const lowStockListForMessage = useMemo(
+    () => lowStockIngredientes.map(formatIngredientStockLabel).join(", "),
+    [lowStockIngredientes]
+  );
+
+  const canSendLowStockMessage =
+    !loadingLowStock && lowStockIngredientes.length > 0 && !lowStockError;
+
+  const handleSendMessage = useCallback(
+    async (supplier: SupplierType) => {
+      if (loadingLowStock || refreshingLowStock) {
+        toast.info("Todavía estamos cargando el stock actual.");
+        return;
+      }
+
+      if (lowStockError) {
+        toast.error("No se pudo obtener la información de stock.");
+        return;
+      }
+
+      if (lowStockIngredientes.length === 0) {
+        toast.info("No hay ingredientes con stock bajo en este momento.");
+        return;
+      }
+
+      const message = `Hola buenas, ¿cómo va ${supplier.name}? Necesito ${lowStockListForMessage}.`;
+
+      let copiedToClipboard = false;
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(message);
+          copiedToClipboard = true;
+          toast.success("Mensaje copiado al portapapeles.");
+        } catch (clipboardError) {
+          console.error("❌ Error copiando el mensaje", clipboardError);
+        }
+      }
+
+      if (!copiedToClipboard && typeof window !== "undefined") {
+        window.prompt("Copiá el mensaje para enviarlo al proveedor:", message);
+      }
+
+      if (typeof window !== "undefined" && supplier.phone) {
+        const sanitizedPhone = supplier.phone.replace(/\D+/g, "");
+        if (sanitizedPhone) {
+          const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    },
+    [
+      loadingLowStock,
+      refreshingLowStock,
+      lowStockError,
+      lowStockIngredientes,
+      lowStockListForMessage,
+    ]
+  );
+
+  const lowStockErrorMessage =
+    lowStockError && lowStockErrorData instanceof Error
+      ? lowStockErrorData.message
+      : lowStockError
+      ? "No se pudieron cargar los ingredientes con bajo stock"
+      : null;
+
+  const lowStockCountLabel = loadingLowStock
+    ? "cargando..."
+    : `${lowStockIngredientes.length}`;
 
   const [priceModalSupplier, setPriceModalSupplier] = useState<SupplierType | null>(null);
   const [showPriceModal, setShowPriceModal] = useState(false);
@@ -65,7 +147,8 @@ export default function SuppliersSection() {
             Gestión de proveedores
           </h1>
           <p className="text-sm text-gray-600">
-            Total: {stats.total} · Activos: {stats.active}
+            Total: {stats.total} · Activos: {stats.active} · Ingredientes con bajo
+            stock: {lowStockCountLabel}
           </p>
         </div>
         <button
@@ -106,6 +189,18 @@ export default function SuppliersSection() {
         </div>
       )}
 
+      {lowStockErrorMessage && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {lowStockErrorMessage}
+          <button
+            onClick={() => refetchLowStock()}
+            className="ml-3 text-xs font-semibold text-amber-700 underline-offset-2 hover:underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {showForm && (
         <div className="space-y-4 rounded-2xl bg-white p-5 shadow">
           <div className="flex items-center justify-between">
@@ -134,11 +229,13 @@ export default function SuppliersSection() {
           </div>
         ) : (
           <SupplierTable
-          suppliers={suppliers}
-          onEdit={editSupplier}
-          onDelete={deleteSupplier}
-          onAddPrice={openPriceModal}
-        />
+            suppliers={suppliers}
+            onEdit={editSupplier}
+            onDelete={deleteSupplier}
+            onAddPrice={openPriceModal}
+            onSendMessage={handleSendMessage}
+            disableSendMessage={!canSendLowStockMessage}
+          />
         )}
       </div>
       <AddSupplierPriceModal
