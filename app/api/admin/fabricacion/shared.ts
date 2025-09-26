@@ -137,15 +137,29 @@ export function normalizeFabricacionPopulate(params: URLSearchParams): void {
     .filter(Boolean);
 
   for (const key of entries) {
-    if (key === "product") {
-      params.set("populate[product]", "*");
-      continue;
+    if (!key) continue;
+
+    const [root, ...rest] = key.split(".").filter(Boolean);
+    if (!root) continue;
+
+    if (root === "product") {
+      if (!params.has("populate[product]")) {
+        params.set("populate[product]", "*");
+      }
+
+      // Los campos de imagen del producto no son necesarios para la vista de fabricación
+      // y algunos entornos de Strapi rechazan consultas como "product.img".
+      if (rest.length === 0 || (rest.length === 1 && rest[0] === "img")) {
+        continue;
+      }
     }
-    if (key === "lineas") {
+
+    if (root === "lineas") {
       params.set("populate[lineas][populate]", "ingredient");
       continue;
     }
-    params.set(`populate[${key}]`, "*");
+
+    params.set(`populate[${root}]`, "*");
   }
 }
 
