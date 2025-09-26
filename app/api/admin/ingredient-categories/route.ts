@@ -49,28 +49,15 @@ function sanitizeCategoryPayload(body: unknown) {
   }
 
   const nombreValue = body.nombre;
-  const descriptionValue = body.description;
-
   const nombre = typeof nombreValue === "string" ? nombreValue.trim() : "";
   if (!nombre) {
     throw new Error("El nombre es obligatorio");
   }
 
-  const description =
-    typeof descriptionValue === "string" ? descriptionValue.trim() : undefined;
-
   const payload: Record<string, unknown> = {
     nombre,
     documentId: generateSlug(nombre),
   };
-
-  if (description && description.length > 0) {
-    payload.description = description;
-    payload.descripcion = description;
-  } else {
-    payload.description = null;
-    payload.descripcion = null;
-  }
 
   return payload;
 }

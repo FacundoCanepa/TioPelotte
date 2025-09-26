@@ -10,12 +10,10 @@ export type CategoryFormState = {
   id?: number;
   documentId?: string;
   nombre: string;
-  description: string;
 };
 
 const EMPTY_FORM: CategoryFormState = {
   nombre: "",
-  description: "",
 };
 
 export function useIngredientCategoriesAdmin() {
@@ -44,11 +42,7 @@ export function useIngredientCategoriesAdmin() {
     return categories
       .filter((category) => {
         const name = category.nombre?.toLowerCase?.() ?? "";
-        const description = category.description?.toLowerCase?.() ?? "";
-        return (
-          name.includes(normalizedSearch) ||
-          (description ? description.includes(normalizedSearch) : false)
-        );
+        return name.includes(normalizedSearch);
       })
       .sort((a, b) =>
         (a.nombre ?? "").localeCompare(b.nombre ?? "", "es", { sensitivity: "base" })
@@ -77,7 +71,6 @@ export function useIngredientCategoriesAdmin() {
       id: category.id,
       documentId: category.documentId,
       nombre: category.nombre ?? "",
-      description: category.description ?? "",
     });
     setShowForm(true);
   };
@@ -111,7 +104,6 @@ export function useIngredientCategoriesAdmin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre,
-          description: form.description,
         }),
       });
 

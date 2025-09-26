@@ -159,17 +159,10 @@ export function mapCategoryFromStrapi(node: unknown): Category | undefined {
     ? attributes.name
     : "";
 
-  const description = typeof attributes.description === "string"
-    ? attributes.description
-    : typeof attributes.descripcion === "string"
-    ? attributes.descripcion
-    : undefined;
-
   return {
     id,
     documentId,
     nombre,
-    description,
     ingredientes: [],
     ingredient_supplier_prices: [],
   };

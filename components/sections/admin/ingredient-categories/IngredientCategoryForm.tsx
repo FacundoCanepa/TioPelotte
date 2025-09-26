@@ -28,38 +28,21 @@ export function IngredientCategoryForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="category-name">
-            Nombre <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="category-name"
-            type="text"
-            value={form.nombre}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, nombre: event.target.value }))
-            }
-            placeholder="Ej. Lácteos"
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-            required
-          />
-        </div>
-        <div className="sm:col-span-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="category-description">
-            Descripción
-          </label>
-          <textarea
-            id="category-description"
-            value={form.description}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, description: event.target.value }))
-            }
-            placeholder="Descripción opcional"
-            rows={3}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-          />
-        </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="category-name">
+          Nombre <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="category-name"
+          type="text"
+          value={form.nombre}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, nombre: event.target.value }))
+          }
+          placeholder="Ej. Lácteos"
+          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+          required
+        />
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

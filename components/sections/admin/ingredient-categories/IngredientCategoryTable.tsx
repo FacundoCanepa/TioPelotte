@@ -23,9 +23,6 @@ export function IngredientCategoryTable({
               Nombre
             </th>
             <th scope="col" className="px-5 py-3 text-left font-semibold">
-              Descripción
-            </th>
-            <th scope="col" className="px-5 py-3 text-left font-semibold">
               Ingredientes asociados
             </th>
             <th scope="col" className="px-5 py-3 text-center font-semibold">
@@ -37,7 +34,7 @@ export function IngredientCategoryTable({
           {categories.length === 0 ? (
             <tr>
               <td
-                colSpan={4}
+                colSpan={3}
                 className="px-5 py-6 text-center text-sm text-gray-500"
               >
                 No hay categorías cargadas todavía.
@@ -58,11 +55,6 @@ export function IngredientCategoryTable({
                 <tr key={rowKey} className="transition hover:bg-gray-50">
                   <td className="whitespace-nowrap px-5 py-4 font-medium">
                     {category.nombre || "Sin nombre"}
-                  </td>
-                  <td className="px-5 py-4 text-gray-600">
-                    {category.description && category.description.trim() !== ""
-                      ? category.description
-                      : "Sin descripción"}
                   </td>
                   <td className="px-5 py-4">
                     <span className="inline-flex items-center rounded-full bg-[#F7EDE2] px-3 py-1 text-xs font-medium text-[#8B4513]">
