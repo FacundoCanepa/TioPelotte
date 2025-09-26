@@ -75,6 +75,43 @@ function sanitizeCategoryPayload(body: unknown) {
   return payload;
 }
 
+type StrapiErrorInfo = {
+  message: string | null;
+  details: unknown;
+};
+
+function extractStrapiError(input: unknown): StrapiErrorInfo | null {
+  if (!isRecord(input)) return null;
+
+  const errorNode = input.error;
+  if (!isRecord(errorNode)) {
+    return {
+      message: null,
+      details: input,
+    };
+  }
+
+  const messageValue =
+    typeof errorNode.message === "string"
+      ? errorNode.message
+      : typeof errorNode.name === "string"
+      ? errorNode.name
+      : null;
+
+  const detailsNode = errorNode.details;
+  const details = isRecord(detailsNode)
+    ? // Strapi v4 nests validation errors inside details.errors
+      (Array.isArray((detailsNode as Record<string, unknown>).errors)
+        ? (detailsNode as Record<string, unknown>).errors
+        : detailsNode)
+    : errorNode;
+
+  return {
+    message: messageValue,
+    details,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     let body: unknown;
@@ -100,21 +137,65 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ data: payload }),
     });
 
-    let json: unknown = null;
+    let rawBody: string | null = null;
     try {
-      json = await res.json();
+      rawBody = await res.text();
     } catch (error) {
-      console.error("[admin/ingredient-categories][POST] parse error", error);
+      console.error("[admin/ingredient-categories][POST] read error", error);
+    }
+
+    let json: unknown = null;
+    let parseError: unknown = null;
+    if (rawBody && rawBody.trim() !== "") {
+      try {
+        json = JSON.parse(rawBody);
+      } catch (error) {
+        parseError = error;
+        console.error(
+          "[admin/ingredient-categories][POST] parse error",
+          error,
+          rawBody
+        );
+      }
     }
 
     if (!res.ok) {
+      const errorInfo = extractStrapiError(json);
+      console.error("[admin/ingredient-categories][POST] failed", {
+        status: res.status,
+        statusText: res.statusText,
+        payload,
+        responseBody: rawBody,
+        parseError: parseError instanceof Error ? parseError.message : parseError,
+      });
+
       return NextResponse.json(
-        { error: "Error creando categoría", details: json },
+        {
+          error: errorInfo?.message ?? "Error creando categoría",
+          details: {
+            status: res.status,
+            statusText: res.statusText,
+            payload,
+            strapi: errorInfo?.details ?? (json ?? rawBody ?? null),
+          },
+        },
         { status: res.status || 500 }
       );
     }
 
-    const category = mapCategoryWithRelations(isRecord(json) ? (json as Record<string, unknown>).data : json);
+    if (!json) {
+      return NextResponse.json(
+        {
+          error: "Respuesta inválida del servidor",
+          details: rawBody,
+        },
+        { status: 502 }
+      );
+    }
+
+    const category = mapCategoryWithRelations(
+      isRecord(json) ? (json as Record<string, unknown>).data : json
+    );
     if (!category) {
       return NextResponse.json(
         { error: "Respuesta inválida del servidor" },
