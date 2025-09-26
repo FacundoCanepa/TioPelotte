@@ -16,4 +16,8 @@ export type IngredientType = {
   supplier?: SupplierType;
   minOrderQty?: number;
   validFrom?: string;
+
+  // Campos para el precio unitario normalizado
+  precioUnitarioBase?: number | null;
+  unidadBase?: "kg" | "l" | "unidad" | null;
 };

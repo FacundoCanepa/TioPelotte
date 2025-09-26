@@ -1,87 +1,112 @@
-export type BaseUnidad = "kg" | "l" | "unidad";
 
-type ConversionEntry = {
-  base: BaseUnidad;
-  convert: (cantidad: number) => number;
+type UnidadBase = "kg" | "l" | "unidad";
+type SupportedMassUnit = "mg" | "g" | "kg";
+type SupportedVolumeUnit = "ml" | "l";
+type SupportedCountUnit = "unidad" | "docena";
+type SupportedUnit = SupportedMassUnit | SupportedVolumeUnit | SupportedCountUnit;
+
+const MASS_UNITS: SupportedMassUnit[] = ["mg", "g", "kg"];
+const VOLUME_UNITS: SupportedVolumeUnit[] = ["ml", "l"];
+const COUNT_UNITS: SupportedCountUnit[] = ["unidad", "docena"];
+
+const SUPPORTED_UNITS: SupportedUnit[] = [...MASS_UNITS, ...VOLUME_UNITS, ...COUNT_UNITS];
+
+const CONVERSION_FACTORS: Record<SupportedUnit, number> = {
+  // Masa (a kg)
+  mg: 1 / 1_000_000,
+  g: 1 / 1_000,
+  kg: 1,
+  // Volumen (a l)
+  ml: 1 / 1_000,
+  l: 1,
+  // Conteo (a unidad)
+  unidad: 1,
+  docena: 12,
 };
 
-const UNIT_CONVERSIONS: Record<string, ConversionEntry> = {
-  mg: { base: "kg", convert: (cantidad) => cantidad / 1_000_000 },
-  g: { base: "kg", convert: (cantidad) => cantidad / 1_000 },
-  gr: { base: "kg", convert: (cantidad) => cantidad / 1_000 },
-  kilogramo: { base: "kg", convert: (cantidad) => cantidad },
-  kilogramos: { base: "kg", convert: (cantidad) => cantidad },
-  kg: { base: "kg", convert: (cantidad) => cantidad },
-  ml: { base: "l", convert: (cantidad) => cantidad / 1_000 },
-  litro: { base: "l", convert: (cantidad) => cantidad },
-  litros: { base: "l", convert: (cantidad) => cantidad },
-  l: { base: "l", convert: (cantidad) => cantidad },
-  unidad: { base: "unidad", convert: (cantidad) => cantidad },
-  unidades: { base: "unidad", convert: (cantidad) => cantidad },
-  docena: { base: "unidad", convert: (cantidad) => cantidad * 12 },
-  docenas: { base: "unidad", convert: (cantidad) => cantidad * 12 },
-};
-
-function normalizeUnitKey(unidadMedida: string | null | undefined) {
-  return unidadMedida?.trim().toLowerCase() ?? "";
+/**
+ * Determina la unidad base para una unidad de medida dada.
+ * @param unidadMedida La unidad de medida (ej. "kg", "g", "l").
+ * @returns La unidad base ("kg", "l", "unidad") or null si no es soportada.
+ */
+export function getUnidadBase(unidadMedida: string): UnidadBase | null {
+  const unit = unidadMedida.toLowerCase().trim();
+  if (MASS_UNITS.includes(unit as SupportedMassUnit)) {
+    return "kg";
+  }
+  if (VOLUME_UNITS.includes(unit as SupportedVolumeUnit)) {
+    return "l";
+  }
+  if (COUNT_UNITS.includes(unit as SupportedCountUnit)) {
+    return "unidad";
+  }
+  return null;
 }
 
-export function getUnidadBase(unidadMedida: string | null | undefined): BaseUnidad | null {
-  const key = normalizeUnitKey(unidadMedida);
-  if (!key) return null;
-  return UNIT_CONVERSIONS[key]?.base ?? null;
-}
-
-export function toUnidadBase(
-  cantidad: number,
-  unidadMedida: string | null | undefined
-): number | null {
-  if (!Number.isFinite(cantidad) || cantidad <= 0) {
+/**
+ * Convierte una cantidad a su unidad base.
+ * @param cantidad La cantidad a convertir.
+ * @param unidadMedida La unidad de medida de la cantidad.
+ * @returns La cantidad convertida a la unidad base, o null si la unidad no es soportada.
+ */
+export function toUnidadBase(cantidad: number, unidadMedida: string): number | null {
+  const unit = unidadMedida.toLowerCase().trim() as SupportedUnit;
+  if (!SUPPORTED_UNITS.includes(unit)) {
     return null;
   }
-  const key = normalizeUnitKey(unidadMedida);
-  const entry = UNIT_CONVERSIONS[key];
-  if (!entry) return null;
-  return entry.convert(cantidad);
+  if (typeof cantidad !== 'number' || !Number.isFinite(cantidad)) {
+      return null;
+  }
+  const factor = CONVERSION_FACTORS[unit];
+  return cantidad * factor;
 }
 
+/**
+ * Calcula el precio unitario normalizado a la unidad base.
+ * @param price El precio total del paquete.
+ * @param quantityNeto La cantidad neta en el paquete.
+ * @param unidadMedida La unidad de medida del paquete.
+ * @returns Un objeto con el valor del precio unitario y la unidad base, o null si no se puede calcular.
+ */
 export function computePrecioUnitarioBase(
   price: number,
   quantityNeto: number,
-  unidadMedida: string | null | undefined
-): { value: number | null; unidadBase: BaseUnidad | null } {
+  unidadMedida: string
+): { value: number | null; unidadBase: UnidadBase | null } {
   const unidadBase = getUnidadBase(unidadMedida);
-  if (!Number.isFinite(price) || price <= 0) {
+  if (price <= 0 || quantityNeto <= 0) {
     return { value: null, unidadBase };
   }
-  const cantidadBase = toUnidadBase(quantityNeto, unidadMedida);
-  if (!Number.isFinite(cantidadBase) || cantidadBase === null || cantidadBase <= 0) {
+
+  const cantidadEnUnidadBase = toUnidadBase(quantityNeto, unidadMedida);
+
+  if (cantidadEnUnidadBase === null || cantidadEnUnidadBase <= 0) {
     return { value: null, unidadBase };
   }
-  const value = price / cantidadBase;
-  if (!Number.isFinite(value) || value <= 0) {
-    return { value: null, unidadBase };
-  }
+
+  const value = price / cantidadEnUnidadBase;
   return { value, unidadBase };
 }
 
+/**
+ * Formatea un valor de precio unitario para mostrar en la UI.
+ * @param value El valor numérico del precio.
+ * @param unidadBase La unidad base ("kg", "l", "unidad").
+ * @param currency La moneda a usar (default: "ARS").
+ * @returns El precio formateado como string.
+ */
 export function formatPrecioUnitario(
   value: number,
-  unidadBase: BaseUnidad,
+  unidadBase: UnidadBase,
   currency = "ARS"
 ): string {
   const formatter = new Intl.NumberFormat("es-AR", {
     style: "currency",
-    currency: currency?.toUpperCase?.() || "ARS",
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatter.format(value)} / ${unidadBase}`;
-}
 
-export function isUnidadSoportada(unidadMedida: string | null | undefined): boolean {
-  const key = normalizeUnitKey(unidadMedida);
-  return Boolean(key && UNIT_CONVERSIONS[key]);
+  const formattedPrice = formatter.format(value);
+  return `≈ ${formattedPrice} por ${unidadBase}`;
 }
-
-export const SUPPORTED_UNITS = Object.freeze(Object.keys(UNIT_CONVERSIONS));
