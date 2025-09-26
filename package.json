@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx tsc --noEmit false --outDir .tmp-tests lib/pricing/normalize.ts lib/pricing/normalize.test.ts && node --test .tmp-tests/normalize.test.js && rm -rf .tmp-tests"
+    "test": "npx tsc --target ES2020 --module commonjs --moduleResolution node --types node --typeRoots types --lib ES2020,DOM,DOM.Iterable --skipLibCheck true --outDir .tmp-tests lib/pricing/normalize.ts lib/pricing/normalize.test.ts lib/fabricacion/costing.ts lib/fabricacion/costing.test.ts && node --test .tmp-tests/pricing/normalize.test.js .tmp-tests/fabricacion/costing.test.js && rm -rf .tmp-tests"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.3",
