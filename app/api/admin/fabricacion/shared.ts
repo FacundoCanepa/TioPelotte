@@ -116,55 +116,99 @@ export function mapFabricacion(node: unknown): Fabricacion | undefined {
   };
 }
 
-function hasPopulate(params: URLSearchParams): boolean {
+function keyToSegments(key: string): string[] {
+  return key
+    .replace(/\]/g, "")
+    .split("[")
+    .filter(Boolean);
+}
+
+function removeProductImagePopulate(params: URLSearchParams): void {
+  const keys = Array.from(params.keys());
+  for (const key of keys) {
+    if (!key.startsWith("populate[")) continue;
+    const segments = keyToSegments(key);
+    if (segments.length < 2) continue;
+    if (segments[0] !== "populate" || segments[1] !== "product") continue;
+
+    if (segments.includes("img")) {
+      params.delete(key);
+      continue;
+    }
+
+    if (segments.includes("fields")) {
+      const values = params.getAll(key);
+      const shouldDelete = values.some((value) =>
+        typeof value === "string" ? value.startsWith("img") || value.includes(".img") : false
+      );
+      if (shouldDelete) {
+        params.delete(key);
+      }
+    }
+  }
+}
+
+export function normalizeFabricacionPopulate(params: URLSearchParams): void {
+  const simplePopulate = params.getAll("populate");
+
+  if (simplePopulate.length > 0) {
+    params.delete("populate");
+
+    const entries = simplePopulate
+      .flatMap((value) => value.split(","))
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    for (const key of entries) {
+      if (!key) continue;
+
+      const [root, ...rest] = key.split(".").filter(Boolean);
+      if (!root) continue;
+
+      if (root === "product") {
+        if (!params.has("populate[product]")) {
+          params.set("populate[product]", "*");
+        }
+
+        // Los campos de imagen del producto no son necesarios para la vista de fabricación
+        // y algunos entornos de Strapi rechazan consultas como "product.img".
+        if (rest.length === 0 || (rest.length === 1 && rest[0] === "img")) {
+          continue;
+        }
+      }
+
+      if (root === "lineas") {
+        params.set("populate[lineas][populate]", "ingredient");
+        continue;
+      }
+
+      params.set(`populate[${root}]`, "*");
+    }
+  }
+
+  removeProductImagePopulate(params);
+}
+
+function hasProductPopulate(params: URLSearchParams): boolean {
   for (const key of params.keys()) {
-    if (key === "populate" || key.startsWith("populate[")) {
+    const segments = keyToSegments(key);
+    if (segments.length >= 2 && segments[0] === "populate" && segments[1] === "product") {
       return true;
     }
   }
   return false;
 }
 
-export function normalizeFabricacionPopulate(params: URLSearchParams): void {
-  const simplePopulate = params.getAll("populate");
-  if (simplePopulate.length === 0) return;
-
-  params.delete("populate");
-
-  const entries = simplePopulate
-    .flatMap((value) => value.split(","))
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  for (const key of entries) {
-    if (!key) continue;
-
-    const [root, ...rest] = key.split(".").filter(Boolean);
-    if (!root) continue;
-
-    if (root === "product") {
-      if (!params.has("populate[product]")) {
-        params.set("populate[product]", "*");
-      }
-
-      // Los campos de imagen del producto no son necesarios para la vista de fabricación
-      // y algunos entornos de Strapi rechazan consultas como "product.img".
-      if (rest.length === 0 || (rest.length === 1 && rest[0] === "img")) {
-        continue;
-      }
-    }
-
-    if (root === "lineas") {
-      params.set("populate[lineas][populate]", "ingredient");
-      continue;
-    }
-
-    params.set(`populate[${root}]`, "*");
-  }
-}
-
 export function ensureFabricacionPopulate(params: URLSearchParams): void {
-  if (hasPopulate(params)) return;
-  params.set("populate[product]", "*");
-  params.set("populate[lineas][populate]", "ingredient");
+  const productFields = ["documentId", "productName", "slug", "price", "unidadMedida"] as const;
+
+  if (!hasProductPopulate(params)) {
+    productFields.forEach((field, index) => {
+      params.append(`populate[product][fields][${index}]`, field);
+    });
+  }
+
+  if (!params.has("populate[lineas][populate]")) {
+    params.set("populate[lineas][populate]", "ingredient");
+  }
 }

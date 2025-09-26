@@ -3,6 +3,24 @@ import { strapiFetch } from "../../suppliers/strapi-helpers";
 import { Fabricacion } from "@/types/fabricacion";
 import { ensureFabricacionPopulate, mapFabricacion, normalizeFabricacionPopulate } from "../shared";
 
+function parseStrapiErrorPayload(payload: string) {
+  try {
+    const parsed = JSON.parse(payload);
+    const message =
+      typeof parsed?.error === "string"
+        ? parsed.error
+        : typeof parsed?.error?.message === "string"
+        ? parsed.error.message
+        : typeof parsed?.message === "string"
+        ? parsed.message
+        : undefined;
+    const details = parsed?.error?.details ?? parsed?.details;
+    return { message, details };
+  } catch {
+    return { message: undefined, details: undefined };
+  }
+}
+
 export async function GET(req: NextRequest, ctx: { params: Promise<{ documentId: string }> }) {
   try {
     const { documentId } = await ctx.params;
@@ -22,15 +40,22 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ documentId:
     const text = await res.text();
 
     if (!res.ok) {
-      console.error("[admin/fabricacion byId][GET] Strapi error", { status: res.status, body: text });
+      console.error("[admin/fabricacion byId][GET] Strapi error", {
+        status: res.status,
+        path,
+        query,
+        body: text,
+      });
       if (res.status === 404) {
         return NextResponse.json({ error: "Fabricación no encontrada" }, { status: 404 });
       }
       if (res.status === 400) {
+        const parsed = text ? parseStrapiErrorPayload(text) : undefined;
         return NextResponse.json(
           {
             error:
               "Strapi rechazó la consulta de fabricación (parámetros inválidos). Intenta recargar o avisa al equipo si persiste.",
+            details: parsed?.details ?? parsed?.message,
           },
           { status: 502 }
         );
