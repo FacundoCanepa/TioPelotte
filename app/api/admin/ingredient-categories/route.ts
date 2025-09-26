@@ -112,6 +112,75 @@ function extractStrapiError(input: unknown): StrapiErrorInfo | null {
   };
 }
 
+type StrapiAttemptResult = {
+  res: Response;
+  rawBody: string | null;
+  json: unknown;
+  parseError: unknown;
+};
+
+function isInvalidDocumentIdError(info: StrapiErrorInfo | null): boolean {
+  if (!info) return false;
+
+  const messageMatch =
+    typeof info.message === "string" &&
+    info.message.toLowerCase().includes("documentid");
+
+  const details = info.details;
+  if (Array.isArray(details)) {
+    const hasDocIdDetail = details.some((detail) => {
+      if (!isRecord(detail)) return false;
+      const key = detail.key ?? detail.path ?? detail.name;
+      return key === "documentId";
+    });
+    if (hasDocIdDetail) {
+      return true;
+    }
+  }
+
+  if (isRecord(details)) {
+    const key = details.key ?? details.path ?? details.name;
+    if (key === "documentId") {
+      return true;
+    }
+  }
+
+  return messageMatch;
+}
+
+async function sendCategoryToStrapi(
+  data: Record<string, unknown>
+): Promise<StrapiAttemptResult> {
+  const res = await strapiFetch("/api/categoria-ingredientes", {
+    method: "POST",
+    body: JSON.stringify({ data }),
+  });
+
+  let rawBody: string | null = null;
+  try {
+    rawBody = await res.text();
+  } catch (error) {
+    console.error("[admin/ingredient-categories][POST] read error", error);
+  }
+
+  let json: unknown = null;
+  let parseError: unknown = null;
+  if (rawBody && rawBody.trim() !== "") {
+    try {
+      json = JSON.parse(rawBody);
+    } catch (error) {
+      parseError = error;
+      console.error(
+        "[admin/ingredient-categories][POST] parse error",
+        error,
+        rawBody
+      );
+    }
+  }
+
+  return { res, rawBody, json, parseError };
+}
+
 export async function POST(req: NextRequest) {
   try {
     let body: unknown;
@@ -132,56 +201,89 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const res = await strapiFetch("/api/categoria-ingredientes", {
-      method: "POST",
-      body: JSON.stringify({ data: payload }),
-    });
+    let attemptPayload: Record<string, unknown> = payload;
+    let attemptResult = await sendCategoryToStrapi(attemptPayload);
 
-    let rawBody: string | null = null;
-    try {
-      rawBody = await res.text();
-    } catch (error) {
-      console.error("[admin/ingredient-categories][POST] read error", error);
-    }
+    if (!attemptResult.res.ok) {
+      const errorInfo = extractStrapiError(attemptResult.json);
 
-    let json: unknown = null;
-    let parseError: unknown = null;
-    if (rawBody && rawBody.trim() !== "") {
-      try {
-        json = JSON.parse(rawBody);
-      } catch (error) {
-        parseError = error;
-        console.error(
-          "[admin/ingredient-categories][POST] parse error",
-          error,
-          rawBody
+      const shouldRetryWithoutDocId =
+        isInvalidDocumentIdError(errorInfo) &&
+        Object.prototype.hasOwnProperty.call(attemptPayload, "documentId");
+
+      if (shouldRetryWithoutDocId) {
+        const fallbackPayload = { ...attemptPayload };
+        delete fallbackPayload.documentId;
+        console.warn(
+          "[admin/ingredient-categories][POST] retrying without documentId"
+        );
+        attemptPayload = fallbackPayload;
+        attemptResult = await sendCategoryToStrapi(attemptPayload);
+
+        if (!attemptResult.res.ok) {
+          const fallbackErrorInfo = extractStrapiError(attemptResult.json);
+          console.error("[admin/ingredient-categories][POST] failed", {
+            status: attemptResult.res.status,
+            statusText: attemptResult.res.statusText,
+            payload: attemptPayload,
+            responseBody: attemptResult.rawBody,
+            parseError:
+              attemptResult.parseError instanceof Error
+                ? attemptResult.parseError.message
+                : attemptResult.parseError,
+            initialError: errorInfo,
+            fallbackError: fallbackErrorInfo,
+          });
+
+          return NextResponse.json(
+            {
+              error: fallbackErrorInfo?.message ?? "Error creando categoría",
+              details: {
+                status: attemptResult.res.status,
+                statusText: attemptResult.res.statusText,
+                payload: attemptPayload,
+                strapi:
+                  fallbackErrorInfo?.details ??
+                  attemptResult.json ??
+                  attemptResult.rawBody ??
+                  null,
+              },
+            },
+            { status: attemptResult.res.status || 500 }
+          );
+        }
+      } else {
+        console.error("[admin/ingredient-categories][POST] failed", {
+          status: attemptResult.res.status,
+          statusText: attemptResult.res.statusText,
+          payload: attemptPayload,
+          responseBody: attemptResult.rawBody,
+          parseError:
+            attemptResult.parseError instanceof Error
+              ? attemptResult.parseError.message
+              : attemptResult.parseError,
+        });
+
+        return NextResponse.json(
+          {
+            error: errorInfo?.message ?? "Error creando categoría",
+            details: {
+              status: attemptResult.res.status,
+              statusText: attemptResult.res.statusText,
+              payload: attemptPayload,
+              strapi:
+                errorInfo?.details ??
+                attemptResult.json ??
+                attemptResult.rawBody ??
+                null,
+            },
+          },
+          { status: attemptResult.res.status || 500 }
         );
       }
     }
 
-    if (!res.ok) {
-      const errorInfo = extractStrapiError(json);
-      console.error("[admin/ingredient-categories][POST] failed", {
-        status: res.status,
-        statusText: res.statusText,
-        payload,
-        responseBody: rawBody,
-        parseError: parseError instanceof Error ? parseError.message : parseError,
-      });
-
-      return NextResponse.json(
-        {
-          error: errorInfo?.message ?? "Error creando categoría",
-          details: {
-            status: res.status,
-            statusText: res.statusText,
-            payload,
-            strapi: errorInfo?.details ?? (json ?? rawBody ?? null),
-          },
-        },
-        { status: res.status || 500 }
-      );
-    }
+    const { rawBody, json } = attemptResult;
 
     if (!json) {
       return NextResponse.json(
