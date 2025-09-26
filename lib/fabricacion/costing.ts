@@ -64,19 +64,12 @@ export type FabricacionCalculoLinea = {
 export type FabricacionResultado = {
   fabricacionId: string;
   nombre: string;
-  batchSize: number;
-  baseUnitarioPromedio?: number;
   costoIngredientes: number;
-  costoIngredientesMermaGlobal: number;
-  costoManoObra: number;
-  costoEmpaque: number;
-  overheadPct: number;
-  overheadMonto: number;
-  costoTotalLote: number;
-  costoUnitario: number;
-  precioSugeridoUnitario: number;
-  margenObjetivoPct: number;
-  margenEstimadoPct: number | null;
+  precioVentaActual: number | null;
+  margenActualPct: number | null;
+  precioSugerido5: number;
+  precioSugerido10: number;
+  precioSugerido15: number;
   lineas: FabricacionCalculoLinea[];
 };
 
@@ -276,44 +269,26 @@ export function calcularCostoFabricacion(
   );
 
   const costoIngredientes = lineasCalculadas.reduce((acc, linea) => acc + (linea.costoTotal || 0), 0);
-  const mermaGlobalMultiplier = 1 + clamp(params.mermaPctGlobal, 0, 1000) / 100;
-  const costoIngredientesMermaGlobal = costoIngredientes * mermaGlobalMultiplier;
-  const subtotal =
-    costoIngredientesMermaGlobal +
-    (Number.isFinite(params.costoManoObra) ? params.costoManoObra : 0) +
-    (Number.isFinite(params.costoEmpaque) ? params.costoEmpaque : 0);
-  const overheadMultiplier = 1 + clamp(params.overheadPct, 0, 1000) / 100;
-  const costoTotalLote = subtotal * overheadMultiplier;
-  const costoUnitario = params.batchSize > 0 ? costoTotalLote / params.batchSize : costoTotalLote;
-  const precioSugeridoUnitario = costoUnitario * (1 + clamp(params.margenObjetivoPct, 0, 1000) / 100);
 
   const precioVentaActual = Number.isFinite(params.precioVentaActual ?? NaN)
     ? params.precioVentaActual ?? null
     : null;
-  let margenEstimadoPct: number | null = null;
-  if (precioVentaActual && precioVentaActual > 0) {
-    const margen = ((precioVentaActual - costoUnitario) / precioVentaActual) * 100;
-    margenEstimadoPct = clamp(margen, -1000, 1000);
-  }
 
-  const overheadMonto = costoTotalLote - subtotal;
+  let margenActualPct: number | null = null;
+  if (precioVentaActual && precioVentaActual > 0) {
+    const margen = ((precioVentaActual - costoIngredientes) / precioVentaActual) * 100;
+    margenActualPct = clamp(margen, -1000, 1000);
+  }
 
   return {
     fabricacionId: params.fabricacionId,
     nombre: params.nombre,
-    batchSize: params.batchSize,
     costoIngredientes: round2(costoIngredientes),
-    costoIngredientesMermaGlobal: round2(costoIngredientesMermaGlobal),
-    costoManoObra: round2(params.costoManoObra),
-    costoEmpaque: round2(params.costoEmpaque),
-    overheadPct: round2(clamp(params.overheadPct, 0, 1000)),
-    overheadMonto: round2(overheadMonto),
-    costoTotalLote: round2(costoTotalLote),
-    costoUnitario: round2(costoUnitario),
-    precioSugeridoUnitario: round2(precioSugeridoUnitario),
-    margenObjetivoPct: round2(clamp(params.margenObjetivoPct, 0, 1000)),
-    margenEstimadoPct: margenEstimadoPct !== null ? round2(margenEstimadoPct) : null,
+    precioVentaActual: precioVentaActual,
+    margenActualPct: margenActualPct !== null ? round2(margenActualPct) : null,
+    precioSugerido5: round2(costoIngredientes * 1.05),
+    precioSugerido10: round2(costoIngredientes * 1.10),
+    precioSugerido15: round2(costoIngredientes * 1.15),
     lineas: lineasCalculadas,
   };
 }
-
