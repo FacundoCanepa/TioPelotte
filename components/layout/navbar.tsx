@@ -16,7 +16,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-16 md:h-20 bg-white/80 backdrop-blur-md z-50 transition-all duration-300 ease-in-out shadow-sm">
+      <header className="fixed top-0 left-0 w-full h-16 md:h-20 bg-[#F9F6F2]/80 backdrop-blur-md z-50 transition-all duration-300 ease-in-out shadow-sm">
         <div className="container mx-auto flex justify-between items-center h-full px-4 md:px-6">
           
           {/* Botón de Menú (Hamburguesa) */}
@@ -39,7 +39,7 @@ export default function Navbar() {
               className="hidden sm:block ml-2 text-xl md:text-2xl font-semibold text-gray-800 tracking-wider cursor-pointer"
               onClick={() => router.push("/")}
             >
-              Tío Pellico
+              Tio Pelotte
             </span>
           </div>
 

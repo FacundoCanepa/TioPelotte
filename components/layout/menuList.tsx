@@ -63,14 +63,14 @@ const MenuList = ({ isOpen, closeMenu }: MenuListProps) => {
           animate="visible"
           exit="exit"
           variants={menuVariants}
-          className="fixed top-0 left-0 w-full h-full bg-white/80 backdrop-blur-md z-40 overscroll-y-none"
+          className="fixed top-0 left-0 w-full h-full bg-[#F9F6F2]/80 backdrop-blur-md z-40 overscroll-y-none"
           onClick={closeMenu}
         >
           <motion.nav
-            className="w-3/4 max-w-sm h-full bg-white shadow-2xl"
+            className="w-3/4 max-w-sm h-full bg-[#F9F6F2] shadow-2xl"
             onClick={(e) => e.stopPropagation()} // Evita que el menú se cierre al hacer clic dentro
           >
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-black/10">
               <h2 className="text-2xl font-bold text-gray-800">Menú</h2>
             </div>
             <ul className="p-6 space-y-4">
@@ -78,7 +78,7 @@ const MenuList = ({ isOpen, closeMenu }: MenuListProps) => {
                 <li key={text}>
                   <a
                     onClick={() => handleClick(href)}
-                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
                   >
                     <Icon size={22} className="text-gray-600" />
                     <span className="text-lg font-medium text-gray-700">{text}</span>
@@ -86,13 +86,13 @@ const MenuList = ({ isOpen, closeMenu }: MenuListProps) => {
                 </li>
               ))}
             </ul>
-            <div className="absolute bottom-0 left-0 w-full p-6 border-t border-gray-200">
+            <div className="absolute bottom-0 left-0 w-full p-6 border-t border-black/10">
               <ul className="space-y-4">
                 {userLinks.map(({ text, href, icon: Icon }) => (
                   <li key={text}>
                     <a
                       onClick={() => handleClick(href)}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
                     >
                       <Icon size={22} className="text-gray-600" />
                       <span className="text-lg font-medium text-gray-700">{text}</span>
