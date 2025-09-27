@@ -1,16 +1,8 @@
+
 "use client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Home,
-  MapPin,
-  ShoppingBag,
-  Percent,
-  ScrollText,
-  Logs,
-  LayoutDashboard,
-} from "lucide-react";
-
+import { Home, MapPin, ShoppingBag, Percent, ScrollText, UserRound, Ticket, LayoutDashboard } from "lucide-react";
 import { useUserStore } from "@/store/user-store";
 
 interface MenuListProps {
@@ -24,65 +16,93 @@ const links = [
   { text: "Ubicación", href: "/ubicacion", icon: MapPin },
   { text: "Recetas", href: "/recetas", icon: Percent },
   { text: "Nuestra historia", href: "/historia", icon: ScrollText },
-  { text: "Consultar pedido", href: "/consultarPedido", icon: Logs },
 ];
 
 const menuVariants = {
-  hidden: { opacity: 0, y: -20 },
+  hidden: { opacity: 0, x: "-100%" },
   visible: {
     opacity: 1,
-    y: 0,
-      transition: {
-      duration: 0.25,
-      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: "easeInOut",
     },
   },
   exit: {
     opacity: 0,
-    y: -10,
-        transition: {
-      duration: 0.2,
-      ease: [0.4, 0, 1, 1] as [number, number, number, number],
+    x: "-100%",
+    transition: {
+      duration: 0.3,
+      ease: "easeInOut",
     },
   },
 };
+
 const MenuList = ({ isOpen, closeMenu }: MenuListProps) => {
   const router = useRouter();
   const user = useUserStore((state) => state.user);
-  const adminLinks =
-    user && (user.role === "Administrador" || user.role === "Empleado")
-      ? [{ text: "Panel", href: "/admin", icon: LayoutDashboard }]
-      : [];
+
   const handleClick = (href: string) => {
     router.push(href);
     closeMenu();
   };
 
+  const adminLinks = user && (user.role === "Administrador" || user.role === "Empleado")
+    ? [{ text: "Panel de Control", href: "/admin", icon: LayoutDashboard }]
+    : [];
+
+  const userLinks = user
+    ? [{ text: "Mi Perfil", href: "/perfil", icon: UserRound }, { text: "Mis Pedidos", href: "/consultarPedido", icon: Ticket }]
+    : [{ text: "Iniciar Sesión", href: "/login", icon: UserRound }];
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.nav
+        <motion.div
           initial="hidden"
           animate="visible"
           exit="exit"
           variants={menuVariants}
-          className="absolute top-full left-0 w-full bg-[#FFD28C]/90 backdrop-blur-md z-30 py-6 shadow-md rounded-b-3xl md:left-1/2 md:-translate-x-1/2 md:w-[50vw]"
+          className="fixed top-0 left-0 w-full h-full bg-white/80 backdrop-blur-md z-40 overscroll-y-none"
+          onClick={closeMenu}
         >
-          <ul className="flex flex-col items-start font-garamond text-[4.5vw] sm:text-base md:text-lg text-stone-800 px-6 gap-4 lg:justify-center">
-
-            {[...links, ...adminLinks].map(({ text, href, icon: Icon }) => (
-              <li
-                key={text}
-                onClick={() => handleClick(href)}
-                className="flex items-center w-full gap-4 py-2 border-b border-black/30 last:border-none cursor-pointer hover:underline hover:text-yellow-900 transition-all"
-              >
-                <Icon size={20} className="text-yellow-800 shrink-0" />
-                <span className="select-none">{text}</span>
-              </li>
-
-            ))}
-          </ul>
-        </motion.nav>
+          <motion.nav
+            className="w-3/4 max-w-sm h-full bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()} // Evita que el menú se cierre al hacer clic dentro
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-800">Menú</h2>
+            </div>
+            <ul className="p-6 space-y-4">
+              {[...links, ...adminLinks].map(({ text, href, icon: Icon }) => (
+                <li key={text}>
+                  <a
+                    onClick={() => handleClick(href)}
+                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <Icon size={22} className="text-gray-600" />
+                    <span className="text-lg font-medium text-gray-700">{text}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <div className="absolute bottom-0 left-0 w-full p-6 border-t border-gray-200">
+              <ul className="space-y-4">
+                {userLinks.map(({ text, href, icon: Icon }) => (
+                  <li key={text}>
+                    <a
+                      onClick={() => handleClick(href)}
+                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <Icon size={22} className="text-gray-600" />
+                      <span className="text-lg font-medium text-gray-700">{text}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </motion.nav>
+        </motion.div>
       )}
     </AnimatePresence>
   );

@@ -1,79 +1,70 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Menu, X, ShoppingCart, UserRound } from "lucide-react";
+import { Menu, X, ShoppingCart } from "lucide-react";
 import { useToggleMenu } from "../hooks/useMenuToggle";
 import MenuList from "./menuList";
-import { useUserStore } from "@/store/user-store";
 import { useCartStore } from "@/store/cart-store";
 import Image from "next/image";
 
 export default function Navbar() {
   const router = useRouter();
   const { isOpen, toggleMenu, closeMenu } = useToggleMenu();
-
-  const user = useUserStore((state) => state.user);
   const cart = useCartStore((state) => state.cart);
-  const itemCount = cart.length; 
+  const itemCount = cart.length;
+
   return (
-    <header className="sticky top-0 left-0 w-full flex items-center justify-between py-3 md:py-0 md:px-5 shadow-md z-50 navbar-secondary bg-white/90 backdrop-blur-sm">
-      <div className="hidden md:flex size-[6vw] relative">
-        <Image src="/favicon.ico" alt="Tio Pelotte Icon" fill className="object-contain" />
-      </div>
-
-      <div className="flex flex-col items-start space-y-2">
-        <span
-          className="text-[9vw] md:text-[2.8vw] md:tracking-widest md:font-semibold font-island cursor-pointer"
-          onClick={() => router.push("/")}
-        >
-          Las pastas de tu pueblo
-        </span>
-      </div>
-
-      <div className="flex items-center space-x-4 md:space-x-8">
-        <button onClick={toggleMenu} className="cursor-pointer">
-          {isOpen ? (
-            <X className="w-[7vw] h-[7vw] md:w-[2vw] md:h-[2vw]" />
-          ) : (
-            <Menu className="w-[7vw] h-[7vw] md:w-[2vw] md:h-[2vw]" />
-          )}
-        </button>
-
-        <div
-          className="relative cursor-pointer"
-          onClick={() => router.push("/cart")}
-        >
-          <ShoppingCart className="w-[7vw] h-[7vw] md:w-[2vw] md:h-[2vw]" />
-          {itemCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-black text-white text-xs px-1.5 py-0.5 rounded-full">
-              {itemCount}
-            </span>
-          )}
-        </div>
-
-        {user ? (
-          <div
-            onClick={() => router.push("/perfil")}
-            className="w-[8vw] h-[8vw] md:w-[2.5vw] md:h-[2.5vw] bg-[#0000007c] rounded-full flex items-center justify-center cursor-pointer text-white font-semibold text-[3vw] md:text-[0.9vw] hover:opacity-90 transition"
-            title="Perfil"
-          >
-            {user.username?.split(" ").length > 1
-              ? user.username
-                  .split(" ")
-                  .slice(0, 2)
-                  .map((word) => word.charAt(0).toUpperCase())
-                  .join("")
-              : user.username?.charAt(0).toUpperCase()}
+    <>
+      <header className="fixed top-0 left-0 w-full h-16 md:h-20 bg-white/80 backdrop-blur-md z-50 transition-all duration-300 ease-in-out shadow-sm">
+        <div className="container mx-auto flex justify-between items-center h-full px-4 md:px-6">
+          
+          {/* Botón de Menú (Hamburguesa) */}
+          <div className="flex items-center">
+            <button onClick={toggleMenu} className="text-gray-700 hover:text-gray-900 transition-colors focus:outline-none">
+              {isOpen ? (
+                <X className="w-7 h-7 md:w-8 md:h-8" />
+              ) : (
+                <Menu className="w-7 h-7 md:w-8 md:h-8" />
+              )}
+            </button>
           </div>
-        ) : (
-          <UserRound
-            className="w-[7vw] h-[7vw] md:w-[2vw] md:h-[2vw] cursor-pointer"
-            onClick={() => router.push("/login")}
-          />
-        )}
-      </div>
 
+          {/* Logo Principal */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center">
+            <div className="relative w-12 h-12 md:w-16 md:h-16 cursor-pointer" onClick={() => router.push("/")}>
+              <Image src="/favicon.ico" alt="Tio Pelotte Icon" fill className="object-contain" />
+            </div>
+            <span
+              className="hidden sm:block ml-2 text-xl md:text-2xl font-semibold text-gray-800 tracking-wider cursor-pointer"
+              onClick={() => router.push("/")}
+            >
+              Tío Pellico
+            </span>
+          </div>
+
+          {/* Iconos de la Derecha */}
+          <div className="flex items-center gap-4 md:gap-6">
+            <div
+              className="relative cursor-pointer group"
+              onClick={() => router.push("/cart")}
+            >
+              <ShoppingCart className="w-7 h-7 md:w-8 md:h-8 text-gray-700 group-hover:text-gray-900 transition-colors" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
+                  {itemCount}
+                </span>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </header>
+      
       <MenuList isOpen={isOpen} closeMenu={closeMenu} />
-    </header>
+      
+      {/* Espaciador para el contenido de la página */}
+      <div className="h-16 md:h-20"></div>
+    </>
   );
 }
