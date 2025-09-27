@@ -1,7 +1,7 @@
 
 "use client";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Home, MapPin, ShoppingBag, Percent, ScrollText, UserRound, Ticket, LayoutDashboard } from "lucide-react";
 import { useUserStore } from "@/store/user-store";
 
@@ -18,7 +18,7 @@ const links = [
   { text: "Nuestra historia", href: "/historia", icon: ScrollText },
 ];
 
-const menuVariants = {
+const menuVariants: Variants = {
   hidden: { opacity: 0, x: "-100%" },
   visible: {
     opacity: 1,
