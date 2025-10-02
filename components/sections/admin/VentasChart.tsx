@@ -82,7 +82,7 @@ export default function VentasChart({ labels, values }: Props) {
   } as const;
 
   return (
-    <div className="bg-white rounded-xl shadow p-4 h-[400px]">
+    <div className="bg-white rounded-xl shadow p-4 w-full h-[260px] sm:h-[320px] lg:h-[420px] overflow-hidden">
       <h2 className="text-xl font-semibold text-[#8B4513] mb-4">Ventas mensuales</h2>
       <p className="text-sm italic text-[#5A3E1B]">
   * Solo se contabilizan pedidos con estado <strong>Entregado</strong>.
