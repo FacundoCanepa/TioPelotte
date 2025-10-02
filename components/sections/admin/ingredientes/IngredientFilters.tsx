@@ -97,7 +97,7 @@ export default function IngredientFilters({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
       <div className="sm:col-span-2 lg:col-span-1">
-        <SearchInput value={search} setValue={setSearch} placeholder="Buscar por nombre..." />
+        <SearchInput value={search} setValue={setSearch} />
       </div>
       <select
         value={filterUnidad}
