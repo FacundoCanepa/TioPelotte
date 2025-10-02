@@ -13,6 +13,7 @@ interface Props {
   onCarouselUpload: (files: FileList | File[]) => Promise<{ ids: { id: number }[]; urls: string[] }>;
   uploading: boolean;
   onSave: () => void;
+  onCancel: () => void;
 }
 
 export default function ProductForm({
@@ -24,6 +25,7 @@ export default function ProductForm({
   onCarouselUpload,
   uploading,
   onSave,
+  onCancel,
 }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -199,7 +201,7 @@ export default function ProductForm({
       </div>
 
       <div className="space-y-1" data-field="description">
-        <label className="text-sm font-semibold text-[#5A3E1B]">Descripci��n completa <span className="text-red-600">*</span></label>
+        <label className="text-sm font-semibold text-[#5A3E1B]">Descripcin completa <span className="text-red-600">*</span></label>
         <textarea
           value={form.description}
           onChange={(e) => {
@@ -209,7 +211,7 @@ export default function ProductForm({
           className={`w-full rounded-md border px-3 py-2 text-sm text-[#5A3E1B] h-24 bg-[#fff7ee] ${
             errors.description ? "border-red-400" : "border-[#e6cdb0]"
           }`}
-          placeholder="Detalle del producto, elaboraci��n, etc."
+          placeholder="Detalle del producto, elaboracin, etc."
         />
         {errorText("description")}
       </div>
@@ -352,12 +354,18 @@ export default function ProductForm({
         </div>
       </div>
 
-      <div>
+      <div className="flex justify-end gap-4 mt-6">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-6 py-3 rounded-md text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
+        >
+          Cancelar
+        </button>
         <button
           onClick={handleSave}
-          className="mt-6 w-full bg-[#8B4513] text-white px-6 py-3 rounded-md hover:bg-[#6e3a1c] transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+          className="bg-[#8B4513] text-white px-6 py-3 rounded-md hover:bg-[#6e3a1c] transition font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
           disabled={uploading}
-          title={undefined}
         >
           Guardar producto
         </button>
@@ -365,4 +373,3 @@ export default function ProductForm({
     </div>
   );
 }
-
