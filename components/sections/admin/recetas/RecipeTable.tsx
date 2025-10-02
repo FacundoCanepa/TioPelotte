@@ -47,8 +47,8 @@ export default function RecipeTable({ items, loading, meta }: Props) {
         {items.map((r) => (
           <div key={r.documentId} className="bg-white border rounded-lg shadow-sm overflow-hidden flex flex-col">
             <div className="relative h-40 w-full">
-              {r.featuredImage ? (
-                <Image src={r.featuredImage} alt={r.titulo} layout="fill" objectFit="cover" />
+              {r.imagen?.url ? (
+                <Image src={r.imagen.url} alt={r.titulo} layout="fill" objectFit="cover" />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                   <BookOpen className="w-12 h-12 text-gray-400" />
