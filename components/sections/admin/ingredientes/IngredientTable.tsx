@@ -78,7 +78,7 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
                 </div>
               </td>
               <td className="p-3">{i.Stock}</td>
-              <td className="p-3 text-xs font-medium bg-[#f2e8da] text-[#5A3E1B] px-2 py-1 rounded-md inline-block">
+              <td className="p-3 text-xs font-medium bg-[#FFF8EC] text-[#000000] px-2 py-1 rounded-md inline-block">
                 {i.unidadMedida}
               </td>
               <td className="p-3 font-semibold">${i.precio.toLocaleString('es-AR')}</td>
