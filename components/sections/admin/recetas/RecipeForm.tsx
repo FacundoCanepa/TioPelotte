@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRecipesStore } from '@/store/admin/recipes-store';
@@ -9,11 +9,12 @@ import { toast } from 'sonner';
 import UploadImageMain from '@/components/ui/upload/UploadImageMain';
 import { useImageUpload } from '@/components/sections/admin/productos/hooks/useImageUpload';
 import { toMediaURL } from '@/utils/media';
+import { Check, ChevronLeft, Loader2 } from 'lucide-react';
 
 type Props = { onClose?: () => void };
 
 export default function RecipeForm({ onClose }: Props) {
-  const { selectedRecipe, createRecipe, updateRecipe, setSelectedRecipe } = useRecipesStore();
+  const { selectedRecipe, createRecipe, updateRecipe, setSelectedRecipe, loading: recipeLoading } = useRecipesStore();
   const editing = !!selectedRecipe?.documentId;
 
   const [titulo, setTitulo] = useState(selectedRecipe?.titulo ?? '');
@@ -24,9 +25,6 @@ export default function RecipeForm({ onClose }: Props) {
   const [tiempo, setTiempo] = useState(selectedRecipe?.tiempo ?? '');
   const [porciones, setPorciones] = useState(selectedRecipe?.porciones ?? '');
   const [published, setPublished] = useState(!!selectedRecipe?.publishedAt);
-  // Campo legacy (ID manual) oculto en UI; mantenido para compatibilidad
-  const [imagenId, setImagenId] = useState<number | undefined>(undefined);
-  // Imagen (upload)
   const [imagen, setImagen] = useState<{ id: number } | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string>(toMediaURL(selectedRecipe?.imagen?.url || ''));
   const { uploadImages, loading: uploading } = useImageUpload();
@@ -47,29 +45,28 @@ export default function RecipeForm({ onClose }: Props) {
   useEffect(() => {
     let alive = true;
     setProductLoading(true);
-    // Si el query está vacío, traemos los primeros productos para sugerir
     searchProducts(productQuery)
       .then((items) => alive && setProductOptions(items))
       .finally(() => alive && setProductLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [productQuery, productosRelacionados]);
+    return () => { alive = false; };
+  }, [productQuery]);
 
-  const availableProductOptions = useMemo(() =>
-    productOptions.filter((p) => !productosRelacionados.some((x) => x.documentId === p.documentId)),
+  const availableProductOptions = useMemo(() => 
+    productOptions.filter(p => !productosRelacionados.some(x => x.documentId === p.documentId)),
     [productOptions, productosRelacionados]
   );
 
-  const canSave = useMemo(() => {
-    return titulo.trim().length > 0 && descripcion.trim().length > 0 && preparacion.trim().length > 0;
-  }, [titulo, descripcion, preparacion]);
+  const canSave = useMemo(() => 
+    titulo.trim().length > 0 && descripcion.trim().length > 0 && preparacion.trim().length > 0,
+    [titulo, descripcion, preparacion]
+  );
 
   const onSubmit = async () => {
     if (!canSave) {
-      toast.error('Completá los campos obligatorios');
+      toast.error('Completa los campos obligatorios: título, descripción y preparación.');
       return;
     }
+    
     const payload: RecipeCreateInput = {
       titulo: titulo.trim(),
       slug: slug.trim(),
@@ -79,59 +76,49 @@ export default function RecipeForm({ onClose }: Props) {
       porciones: porciones.trim(),
       published,
       imagenId: imagen?.id,
-      productosRelacionados: productosRelacionados.map((p) => ({ documentId: p.documentId })),
+      productosRelacionados: productosRelacionados.map(p => ({ documentId: p.documentId })),
     } as RecipeCreateInput;
 
     try {
+      let newRecipe: Recipe;
       if (editing && selectedRecipe?.documentId) {
-        const r = await updateRecipe(selectedRecipe.documentId, payload);
-        toast.success('Receta actualizada');
-        setSelectedRecipe(r);
+        newRecipe = await updateRecipe(selectedRecipe.documentId, payload);
+        toast.success('Receta actualizada correctamente');
       } else {
-        const r = await createRecipe(payload);
-        toast.success('Receta creada');
-        setSelectedRecipe(r);
+        newRecipe = await createRecipe(payload);
+        toast.success('Receta creada con éxito');
       }
+      setSelectedRecipe(newRecipe);
       onClose?.();
     } catch (e: any) {
       console.error(e);
-      toast.error('Ocurrió un error al guardar');
+      toast.error('Error al guardar la receta. Revisa los datos e intenta de nuevo.');
     }
   };
 
-  const onCancel = () => {
-    onClose?.();
-  };
+  const inputStyles = "w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600/40 min-h-[44px]";
+  const labelStyles = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div>
-          <label htmlFor="titulo" className="block text-sm font-medium">Título*</label>
-          <input
-            id="titulo"
-            aria-label="Título de la receta"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-            placeholder="Ej: Tarta de manzana"
-          />
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-800">{editing ? 'Editar Receta' : 'Nueva Receta'}</h2>
+        <button onClick={onClose} className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"><ChevronLeft size={16}/> Volver</button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <label htmlFor="titulo" className={labelStyles}>Título*</label>
+          <input id="titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} className={inputStyles} placeholder="Ej: Tarta de manzana" />
         </div>
-        <div>
-          <label htmlFor="slug" className="block text-sm font-medium">Slug</label>
-          <input
-            id="slug"
-            aria-label="Slug de la receta"
-            value={slug}
-            onChange={(e) => { setSlug(e.target.value); setSlugEdited(true); }}
-            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-            placeholder="tarta-de-manzana"
-          />
+        <div className="md:col-span-2">
+          <label htmlFor="slug" className={labelStyles}>Slug</label>
+          <input id="slug" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugEdited(true); }} className={inputStyles} placeholder="tarta-de-manzana" />
         </div>
       </div>
 
       <div>
-        <div className="mb-1 text-sm font-medium">Imagen principal</div>
+        <label className={labelStyles}>Imagen Principal</label>
         <UploadImageMain
           value={imagen}
           preview={imagenPreview}
@@ -152,139 +139,70 @@ export default function RecipeForm({ onClose }: Props) {
       </div>
 
       <div>
-        <label htmlFor="descripcion" className="block text-sm font-medium">Descripción*</label>
-        <textarea
-          id="descripcion"
-          aria-label="Descripción breve"
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-          rows={3}
-          placeholder="Breve resumen de la receta"
-        />
+        <label htmlFor="descripcion" className={labelStyles}>Descripción*</label>
+        <textarea id="descripcion" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className={inputStyles} rows={3} placeholder="Un resumen delicioso de esta receta..." />
       </div>
 
       <div>
-        <label htmlFor="preparacion" className="block text-sm font-medium">Preparación*</label>
-        <textarea
-          id="preparacion"
-          aria-label="Preparación de la receta"
-          value={preparacion}
-          onChange={(e) => setPreparacion(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-          rows={8}
-          placeholder="Pasos en líneas, soporta markdown simple"
-        />
+        <label htmlFor="preparacion" className={labelStyles}>Preparación*</label>
+        <textarea id="preparacion" value={preparacion} onChange={(e) => setPreparacion(e.target.value)} className={inputStyles} rows={8} placeholder="1. Precalentar el horno...\n2. Mezclar los ingredientes..." />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label htmlFor="tiempo" className="block text-sm font-medium">Tiempo</label>
-          <input
-            id="tiempo"
-            aria-label="Tiempo de preparación"
-            value={tiempo}
-            onChange={(e) => setTiempo(e.target.value)}
-            placeholder="50 minutos"
-            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-          />
+          <label htmlFor="tiempo" className={labelStyles}>Tiempo</label>
+          <input id="tiempo" value={tiempo} onChange={(e) => setTiempo(e.target.value)} placeholder="50 min" className={inputStyles} />
         </div>
         <div>
-          <label htmlFor="porciones" className="block text-sm font-medium">Porciones</label>
-          <input
-            id="porciones"
-            aria-label="Cantidad de porciones"
-            value={porciones}
-            onChange={(e) => setPorciones(e.target.value)}
-            placeholder="4 personas"
-            className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-          />
+          <label htmlFor="porciones" className={labelStyles}>Porciones</label>
+          <input id="porciones" value={porciones} onChange={(e) => setPorciones(e.target.value)} placeholder="4 pers." className={inputStyles} />
         </div>
-        <div className="flex items-center gap-3 pt-6">
-          <input id="published" type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-          <label htmlFor="published" className="text-sm">Publicada</label>
+        <div className="flex items-end pb-2">
+          <div className="flex items-center gap-2">
+            <input id="published" type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="h-4 w-4 rounded" />
+            <label htmlFor="published" className="text-sm text-gray-700">Publicar</label>
+          </div>
         </div>
       </div>
 
       <div>
-        <div className="mb-1 text-sm font-medium">Productos relacionados</div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-          <div>
+        <label className={labelStyles}>Ingredientes / Productos Relacionados</label>
+        <div className="space-y-3">
             <input
-              aria-label="Buscar productos para agregar"
               value={productQuery}
               onChange={(e) => setProductQuery(e.target.value)}
-              placeholder="Buscar producto por nombre..."
-              className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
+              placeholder="Buscar producto..."
+              className={inputStyles}
             />
-            {!!availableProductOptions.length && (
-              <ul className="mt-1 max-h-40 overflow-auto rounded-xl border border-gray-200 bg-white shadow">
-                {availableProductOptions.map((p) => (
-                  <li
-                    key={p.documentId}
-                    className="cursor-pointer px-3 py-2 hover:bg-amber-50"
-                    onClick={() => {
-                      if (!productosRelacionados.find((x) => x.documentId === p.documentId)) {
-                        setProductosRelacionados([...productosRelacionados, p]);
-                      }
-                      setProductQuery('');
-                      setProductOptions([]);
-                    }}
-                  >
-                    <div className="text-sm font-medium">{p.productName}</div>
-                    <div className="text-xs text-gray-500">{p.slug}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="mt-1 text-xs text-gray-600">
-              {productLoading ? 'Buscando...' : (!availableProductOptions.length ? 'Escribí para filtrar o dejalo vacío para sugerencias' : '')}
+            {productLoading && <p className="text-sm text-gray-500">Buscando...</p>}
+            <div className="max-h-[120px] overflow-auto flex flex-wrap gap-2">
+              {availableProductOptions.map(p => (
+                  <button key={p.documentId} onClick={() => { setProductosRelacionados([...productosRelacionados, p]); setProductQuery(''); }} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full hover:bg-gray-200">
+                      + {p.productName}
+                  </button>
+              ))}
             </div>
-          </div>
-          <div>
-            <div className="rounded-xl border border-gray-200 p-2">
-              {productosRelacionados.length === 0 && (
-                <div className="text-sm text-gray-500">Sin productos seleccionados</div>
-              )}
-              <ul className="space-y-1">
-                {productosRelacionados.map((p) => (
-                  <li key={p.documentId} className="flex items-center justify-between rounded-lg bg-gray-50 px-2 py-1 text-sm">
-                    <span>{p.productName}</span>
-                    <button
-                      className="text-xs text-red-600 hover:underline"
-                      onClick={() => setProductosRelacionados(productosRelacionados.filter((x) => x.documentId !== p.documentId))}
-                    >
-                      Quitar
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+
+          <div className="flex flex-wrap gap-2 pt-2 border-t mt-2">
+            {productosRelacionados.map(p => (
+              <div key={p.documentId} className="flex items-center justify-between bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-sm">
+                <span>{p.productName}</span>
+                <button onClick={() => setProductosRelacionados(productosRelacionados.filter(x => x.documentId !== p.documentId))} className="ml-2 text-xs hover:text-red-600">x</button>
+              </div>
+            ))}
+            {productosRelacionados.length === 0 && <p className="text-sm text-gray-400">No hay ingredientes asignados.</p>}
           </div>
         </div>
       </div>
 
-      <div className="hidden">
-        <label htmlFor="imagenId" className="block text-sm font-medium">Imagen (ID de media en Strapi)</label>
-        <input
-          id="imagenId"
-          aria-label="ID de la imagen en Strapi"
-          value={imagenId ?? ''}
-          onChange={(e) => setImagenId(e.target.value ? Number(e.target.value) : undefined)}
-          placeholder="Ej: 42"
-          className="mt-1 w-40 rounded-xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600 focus:outline-none"
-        />
-        <div className="mt-1 text-xs text-gray-600">Usá el selector de imágenes del panel para obtener el ID.</div>
-      </div>
-
-      <div className="flex items-center justify-end gap-2 pt-2">
-        <button onClick={onCancel} className="rounded-xl border border-gray-300 bg-white px-4 py-2 shadow-sm hover:bg-gray-50">Cancelar</button>
+      <div className="flex items-center justify-end gap-3 pt-4 border-t">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg border bg-white shadow-sm hover:bg-gray-50 text-sm">Cancelar</button>
         <button
           onClick={onSubmit}
-          disabled={!canSave}
-          className="rounded-xl bg-amber-600 px-4 py-2 text-white shadow hover:bg-amber-700 disabled:opacity-50"
+          disabled={!canSave || recipeLoading}
+          className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50 min-h-[44px]"
         >
-          {editing ? 'Guardar cambios' : 'Crear receta'}
+          {recipeLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (editing ? 'Guardar Cambios' : 'Crear Receta')}
         </button>
       </div>
     </div>

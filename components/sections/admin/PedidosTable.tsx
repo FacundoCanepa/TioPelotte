@@ -64,18 +64,9 @@ function buildWhatsappLink(p: any, items: LineItem[]) {
           })
           .join("\n")
       : "• (sin ítems parseables)";
-  const msg = `¡Hola ${p?.nombre || ""}! 👋
-Tu pedido en *TÍO PELOTTE*:
-${lines}
-
-*Total:* ${formatCurrency(p?.total)}
-*Pago:* ${p?.tipoPago ?? "-"}
-*Entrega:* ${p?.tipoEntrega ?? "-"}${
+  const msg = `¡Hola ${p?.nombre || ""}! 👋\nTu pedido en *TÍO PELOTTE*:\n${lines}\n\n*Total:* ${formatCurrency(p?.total)}\n*Pago:* ${p?.tipoPago ?? "-"}\n*Entrega:* ${p?.tipoEntrega ?? "-"}${
     p?.direccion ? ` — ${p?.direccion}` : ""
-  }${p?.zona ? ` (${p?.zona})` : ""}
-*Estado:* ${p?.estado ?? "-"}
-
-¡Gracias por tu compra!`;
+  }${p?.zona ? ` (${p?.zona})` : ""}\n*Estado:* ${p?.estado ?? "-"}\n\n¡Gracias por tu compra!`;
 
   const phone = ensureWaPhone(p?.telefono || "");
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
@@ -129,10 +120,10 @@ export default function PedidosTable({ pedidos }: Props) {
   };
 
   return (
-    <div className="overflow-x-auto bg-white rounded-xl shadow p-4">
+    <div className="overflow-x-auto bg-white rounded-xl shadow p-4 lg:overflow-visible">
       <h2 className="text-xl font-semibold text-[#8B4513] mb-4">Últimos pedidos</h2>
 
-      <table className="min-w-full text-sm">
+      <table className="min-w-full text-sm w-full hidden md:table">
         <thead className="bg-[#FBE6D4] text-[#5A3E1B]">
           <tr>
             <th className="p-2 w-10" />
@@ -146,9 +137,9 @@ export default function PedidosTable({ pedidos }: Props) {
             <th className="p-2 text-left">#</th>
           </tr>
         </thead>
-
-        <tbody>
-          {pedidos.map((p) => {
+        </table>
+        <div className="block space-y-4 md:table-row-group">
+        {pedidos.map((p) => {
             const fecha = new Date(p.createdAt).toLocaleDateString("es-AR");
             const total = formatCurrency(p.total as any);
             const waLink = p.telefono ? buildWhatsappLink(p, parseItems((p as any).items)) : "#";
@@ -157,25 +148,38 @@ export default function PedidosTable({ pedidos }: Props) {
             const toggle = () => setExpanded((prev) => (prev === p.documentId ? null : p.documentId));
 
             return (
-              <>
-                <tr key={p.id} className="border-b last:border-none hover:bg-[#FFF8EC]">
-                  <td className="p-2 align-top">
+              <div key={p.id} className="border border-[#EADBC8] rounded-xl overflow-hidden shadow-sm md:border-none md:shadow-none md:rounded-none">
+                <div className="grid grid-cols-2 gap-y-2 p-4 md:table-row md:p-0 md:hover:bg-[#FFF8EC] transition group">
+                  <div className="col-span-2 md:table-cell md:p-2 md:align-top">
                     <button
                       onClick={toggle}
-                      className="rounded-md p-1 text-[#8B4513] hover:bg-[#FBE6D4] hover:text-[#5A3E1B] transition"
+                      className="rounded-md p-1 text-[#8B4513] hover:bg-[#FBE6D4] hover:text-[#5A3E1B] transition min-h-[44px] min-w-[44px] flex items-center justify-center"
                       aria-label={isOpen ? "Ocultar detalle" : "Ver detalle"}
                     >
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </button>
-                  </td>
+                  </div>
 
-                  <td className="p-2 whitespace-nowrap align-top">{fecha}</td>
-                  <td className="p-2 whitespace-nowrap align-top capitalize">{p.nombre}</td>
-                  <td className="p-2 whitespace-nowrap align-top">{total}</td>
-                  <td className="p-2 whitespace-nowrap align-top capitalize">{p.tipoPago}</td>
-                  <td className="p-2 whitespace-nowrap align-top capitalize">
+                  <div className="col-span-1 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex justify-between items-center" data-label="Fecha: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Fecha: </span>
+                    <span>{fecha}</span>
+                  </div>
+                  <div className="col-span-1 md:table-cell md:p-2 md:whitespace-nowrap md:align-top capitalize flex justify-between items-center" data-label="Cliente: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Cliente: </span>
+                    <span>{p.nombre}</span>
+                  </div>
+                  <div className="col-span-1 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex justify-between items-center" data-label="Total: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Total: </span>
+                    <span>{total}</span>
+                  </div>
+                  <div className="col-span-1 md:table-cell md:p-2 md:whitespace-nowrap md:align-top capitalize flex justify-between items-center" data-label="Pago: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Pago: </span>
+                    <span>{p.tipoPago}</span>
+                  </div>
+                  <div className="col-span-2 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex flex-col sm:flex-row items-start sm:items-center gap-2" data-label="Entrega: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Entrega: </span>
                     <select
-                      className="border rounded-md px-2 py-1 bg-white"
+                      className="border rounded-md px-2 py-1 bg-white w-full sm:w-auto min-h-[44px]"
                       value={p.tipoEntrega}
                       onChange={(e) =>
                         p.documentId && actualizarPedido(p.documentId, { tipoEntrega: e.target.value as any })
@@ -185,11 +189,12 @@ export default function PedidosTable({ pedidos }: Props) {
                       <option value="local">Local</option>
                     </select>
                     {loadingId === p.documentId && <Loader2 className="inline ml-2 w-4 h-4 animate-spin" />}
-                  </td>
+                  </div>
 
-                  <td className="p-2 whitespace-nowrap align-top">
+                  <div className="col-span-2 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex flex-col sm:flex-row items-start sm:items-center gap-2" data-label="Estado: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Estado: </span>
                     <select
-                      className="border rounded-md px-2 py-1 bg-white"
+                      className="border rounded-md px-2 py-1 bg-white w-full sm:w-auto min-h-[44px]"
                       value={p.estado}
                       onChange={(e) => p.documentId && actualizarPedido(p.documentId, { estado: e.target.value as any })}
                     >
@@ -199,16 +204,17 @@ export default function PedidosTable({ pedidos }: Props) {
                       <option value="Cancelado">Cancelado</option>
                     </select>
                     {loadingId === p.documentId && <Loader2 className="inline ml-2 w-4 h-4 animate-spin" />}
-                  </td>
+                  </div>
 
-                  <td className="p-2 whitespace-nowrap align-top">
+                  <div className="col-span-2 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex justify-between items-center" data-label="Teléfono: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">Teléfono: </span>
                     <div className="flex items-center gap-2">
                       {p.telefono ? (
                         <a
                           href={`https://wa.me/${ensureWaPhone(p.telefono)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-green-600 underline"
+                          className="text-green-600 underline min-h-[44px] flex items-center"
                         >
                           {p.telefono}
                         </a>
@@ -218,34 +224,34 @@ export default function PedidosTable({ pedidos }: Props) {
                       {p.telefono && (
                         <button
                           onClick={() => copiar(p.telefono, "Teléfono copiado")}
-                          className="text-[#8B4513] hover:text-black"
+                          className="text-[#8B4513] hover:text-black p-2 rounded-full hover:bg-[#FBE6D4] min-h-[44px] min-w-[44px] flex items-center justify-center"
                           title="Copiar teléfono"
                         >
                           <Copy className="h-4 w-4" />
                         </button>
                       )}
                     </div>
-                  </td>
+                  </div>
 
-                  <td className="p-2 whitespace-nowrap align-top">
+                  <div className="col-span-2 md:table-cell md:p-2 md:whitespace-nowrap md:align-top flex justify-between items-center" data-label="ID de pago: ">
+                    <span className="font-bold text-xs uppercase text-[#7a5b3a] md:hidden">ID de pago: </span>
                     <div className="flex items-center gap-2">
                       {p.payment_id ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[#FBE6D4] px-2 py-1 text-xs text-[#5A3E1B]">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#FBE6D4] px-2 py-1 text-xs text-[#5A3E1B] min-h-[44px]">
                           <Receipt className="h-3.5 w-3.5" />
                           {p.payment_id}
                         </span>
-                      ) : null}
+                      ) : <span className="text-gray-400">—</span>}
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
 
                 {/* Fila expandida (detalle) */}
                 {isOpen && (
-                  <tr className="bg-[#FFFBF3]">
-                    <td colSpan={9} className="p-3">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="bg-[#FFFBF3] p-3 border-t border-[#EADBC8] md:table-row-group">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
                         {/* Col 1: Datos de entrega */}
-                        <section className="rounded-lg border border-[#EADBC8] p-3">
+                        <section className="rounded-lg border border-[#EADBC8] p-3 w-full">
                           <h3 className="mb-2 text-sm font-semibold text-[#8B4513]">Entrega</h3>
                           <div className="space-y-2 text-sm">
                             <p className="flex items-start gap-2">
@@ -256,7 +262,7 @@ export default function PedidosTable({ pedidos }: Props) {
                                   <>
                                     {p.direccion}{" "}
                                     <button
-                                      className="ml-1 text-[#8B4513] underline"
+                                      className="ml-1 text-[#8B4513] underline min-h-[44px] min-w-[44px] flex items-center justify-center"
                                       onClick={() => copiar(p.direccion!, "Dirección copiada")}
                                     >
                                       copiar
@@ -296,7 +302,7 @@ export default function PedidosTable({ pedidos }: Props) {
                                   href={waLink}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                                  className="inline-flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 w-full min-h-[44px]"
                                 >
                                   <MessageCircle className="h-4 w-4" />
                                   WhatsApp con detalle
@@ -307,13 +313,13 @@ export default function PedidosTable({ pedidos }: Props) {
                         </section>
 
                         {/* Col 2: Items */}
-                        <section className="rounded-lg border border-[#EADBC8] p-3">
+                        <section className="rounded-lg border border-[#EADBC8] p-3 w-full">
                           <h3 className="mb-2 text-sm font-semibold text-[#8B4513]">Ítems</h3>
                           <ItemsTable rawItems={(p as any).items} />
                         </section>
 
                         {/* Col 3: Resumen / Pago */}
-                        <section className="rounded-lg border border-[#EADBC8] p-3">
+                        <section className="rounded-lg border border-[#EADBC8] p-3 w-full">
                           <h3 className="mb-2 text-sm font-semibold text-[#8B4513]">Resumen</h3>
                           <ul className="space-y-1 text-sm">
                             <li>
@@ -341,14 +347,12 @@ export default function PedidosTable({ pedidos }: Props) {
                           </ul>
                         </section>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
                 )}
-              </>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
     </div>
   );
 }
@@ -371,8 +375,8 @@ function ItemsTable({ rawItems }: { rawItems: any }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-[#EADBC8]">
-      <table className="w-full text-xs">
+    <div className="overflow-x-auto overflow-hidden rounded-md border border-[#EADBC8]">
+      <table className="w-full text-xs hidden sm:table">
         <thead className="bg-[#FFF4E6]">
           <tr className="text-[#5A3E1B]">
             <th className="px-2 py-1 text-left">Producto</th>
@@ -381,29 +385,43 @@ function ItemsTable({ rawItems }: { rawItems: any }) {
             <th className="px-2 py-1 text-right">Subtot.</th>
           </tr>
         </thead>
-        <tbody>
+        </table>
+        <div className="block space-y-2 sm:table-row-group">
           {items.map((it, idx) => {
             const name = it.title || it.product_name || `Item ${idx + 1}`;
             const qty = it.quantity ?? it.qty ?? 1;
             const unit = it.unit_price ?? it.price ?? 0;
             const subtotal = qty * unit;
             return (
-              <tr key={idx} className="border-t">
-                <td className="px-2 py-1">{name}</td>
-                <td className="px-2 py-1 text-right">{qty}</td>
-                <td className="px-2 py-1 text-right">{formatCurrency(unit)}</td>
-                <td className="px-2 py-1 text-right font-medium">{formatCurrency(subtotal)}</td>
-              </tr>
+              <div key={idx} className="grid grid-cols-2 gap-x-4 gap-y-1 p-2 border-t border-gray-200 sm:table-row sm:border-none">
+                <div className="col-span-2 text-left sm:table-cell sm:px-2 sm:py-1" data-label="Producto: ">
+                  <span className="font-bold text-xs uppercase text-gray-600 sm:hidden">Producto: </span>
+                  <span>{name}</span>
+                </div>
+                <div className="text-right sm:table-cell sm:px-2 sm:py-1 flex justify-between items-center" data-label="Cant.: ">
+                  <span className="font-bold text-xs uppercase text-gray-600 sm:hidden">Cant.: </span>
+                  <span>{qty}</span>
+                </div>
+                <div className="text-right sm:table-cell sm:px-2 sm:py-1 flex justify-between items-center" data-label="Unit.: ">
+                  <span className="font-bold text-xs uppercase text-gray-600 sm:hidden">Unit.: </span>
+                  <span>{formatCurrency(unit)}</span>
+                </div>
+                <div className="text-right font-medium sm:table-cell sm:px-2 sm:py-1 flex justify-between items-center" data-label="Subtot.: ">
+                  <span className="font-bold text-xs uppercase text-gray-600 sm:hidden">Subtot.: </span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+              </div>
             );
           })}
-          <tr className="border-t bg-[#FFF9F0]">
-            <td className="px-2 py-1 text-right font-semibold" colSpan={3}>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 p-2 border-t bg-[#FFF9F0] font-semibold sm:table-row">
+            <div className="col-span-full text-right sm:table-cell sm:px-2 sm:py-1">
               Total ítems
-            </td>
-            <td className="px-2 py-1 text-right font-semibold">{formatCurrency(sum)}</td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+            <div className="text-right sm:table-cell sm:px-2 sm:py-1">
+              {formatCurrency(sum)}
+            </div>
+          </div>
+        </div>
     </div>
   );
 }

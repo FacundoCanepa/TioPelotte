@@ -45,39 +45,38 @@ export function SupplierForm({ form, setForm, onSave, onCancel, saving }: Suppli
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-      <div className="space-y-1">
-        <label className="block text-sm font-semibold text-[#5A3E1B]">Nombre</label>
-        <input
-          type="text"
-          value={form.name ?? ""}
-          onChange={(event) =>
-            setForm((prev) => ({ ...prev, name: event.target.value }))
-          }
-          placeholder="Nombre del proveedor"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-        />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Nombre</label>
+          <input
+            type="text"
+            value={form.name ?? ""}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, name: event.target.value }))
+            }
+            placeholder="Nombre del proveedor"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+          <input
+            type="tel"
+            value={form.phone ?? ""}
+            onChange={(event) => {
+              const numericValue = event.target.value.replace(/[^0-9+]/g, "");
+              setForm((prev) => ({ ...prev, phone: numericValue }));
+            }}
+            placeholder="Ej: 5491122334455"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+          />
+        </div>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-sm font-semibold text-[#5A3E1B]">Teléfono</label>
-        <input
-          type="tel"
-          value={form.phone ?? ""}
-          onChange={(event) => {
-            const numericValue = event.target.value.replace(/[^0-9+]/g, "");
-            setForm((prev) => ({
-              ...prev,
-              phone: numericValue,
-            }));
-          }}
-          placeholder="Ej: 5491122334455"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
-        />
-      </div>
-
-      <div className="md:col-span-2 space-y-1">
-        <label className="block text-sm font-semibold text-[#5A3E1B]">Ingredientes</label>
+        <label className="block text-sm font-medium text-gray-700">Ingredientes</label>
         <Select
           isMulti
           name="ingredientes"
@@ -92,30 +91,30 @@ export function SupplierForm({ form, setForm, onSave, onCancel, saving }: Suppli
         />
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-semibold text-[#5A3E1B]">
+      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
         <input
           type="checkbox"
           checked={form.active ?? true}
           onChange={(event) =>
             setForm((prev) => ({ ...prev, active: event.target.checked }))
           }
-          className="h-4 w-4 rounded border-gray-300 text-[#8B4513] focus:ring-[#8B4513]"
+          className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
         />
         Proveedor activo
       </label>
 
-      <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-100"
+          className="w-full sm:w-auto justify-center inline-flex rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-[#8B4513] px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-[#5A3E1B] disabled:cursor-not-allowed disabled:bg-[#C8B6A6]"
+          className="w-full sm:w-auto justify-center inline-flex rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {saving ? "Guardando..." : "Guardar"}
         </button>

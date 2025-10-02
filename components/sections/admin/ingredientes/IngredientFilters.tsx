@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { Plus } from "lucide-react";
 import SearchInput from "@/components/ui/productos-filters/SearchInput";
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
   unidades: string[];
   filterLowStock: boolean;
   setFilterLowStock: (v: boolean) => void;
-  onNew: () => void;
 }
 
 type IngredientCategoryOption = {
@@ -31,7 +29,6 @@ export default function IngredientFilters({
   unidades,
   filterLowStock,
   setFilterLowStock,
-  onNew,
 }: Props) {
   const [categories, setCategories] = useState<IngredientCategoryOption[]>([]);
 
@@ -98,14 +95,16 @@ export default function IngredientFilters({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 flex-wrap w-full sm:w-auto">
-      <SearchInput value={search} setValue={setSearch} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+      <div className="sm:col-span-2 lg:col-span-1">
+        <SearchInput value={search} setValue={setSearch} placeholder="Buscar por nombre..." />
+      </div>
       <select
         value={filterUnidad}
         onChange={(e) => setFilterUnidad(e.target.value)}
-        className="border p-2 rounded w-full sm:w-auto min-h-[44px]"
+        className="w-full border p-2 rounded-lg bg-white min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent"
       >
-        <option value="all">Unidad</option>
+        <option value="all">Todas las unidades</option>
         {unidades.map((u) => (
           <option key={u} value={u}>
             {u}
@@ -115,30 +114,26 @@ export default function IngredientFilters({
       <select
         value={filterCategoria}
         onChange={handleCategoryChange}
-        className="border p-2 rounded w-full sm:w-auto min-h-[44px]"
+        className="w-full border p-2 rounded-lg bg-white min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent"
       >
-        <option value="all">Todas</option>
+        <option value="all">Todas las categorías</option>
         {categories.map((category) => (
           <option key={category.id} value={category.id}>
             {category.nombre || `Categoría ${category.id}`}
           </option>
         ))}
       </select>
-      <label className="flex items-center gap-2 text-sm w-full sm:w-auto min-h-[44px]">
-        <input
-          type="checkbox"
-          checked={filterLowStock}
-          onChange={(e) => setFilterLowStock(e.target.checked)}
-          className="min-w-[44px] min-h-[44px]"
-        />
-        Stock bajo
-      </label>
-      <button
-        onClick={onNew}
-        className="flex items-center justify-center gap-2 px-4 py-2 bg-[#FFF4E3] text-[#8B4513] border border-[#8B4513] rounded-lg hover:bg-[#f5e5cc] transition w-full sm:w-auto min-h-[44px]"
-      >
-        <Plus className="w-4 h-4" /> Nuevo ingrediente
-      </button>
+      <div className="flex items-center justify-center sm:justify-start bg-white border rounded-lg p-2 min-h-[44px]">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filterLowStock}
+            onChange={(e) => setFilterLowStock(e.target.checked)}
+            className="h-5 w-5 rounded text-[#8B4513] focus:ring-[#8B4513] border-gray-300"
+          />
+          <span className="text-sm font-medium text-gray-700">Solo stock bajo</span>
+        </label>
+      </div>
     </div>
   );
 }

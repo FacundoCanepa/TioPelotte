@@ -150,7 +150,10 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      <PedidosTable pedidos={pedidosOrdenados.slice(0, 20)} />
+      <div className="relative overflow-x-auto lg:overflow-visible bg-white rounded-xl shadow p-4 md:p-0">
+        <h2 className="text-xl font-semibold text-[#8B4513] mb-4 p-4 md:p-0">Últimos pedidos</h2>
+        <PedidosTable pedidos={pedidosOrdenados.slice(0, 20)} />
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Filtrar resumen y métricas</h2>

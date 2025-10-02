@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listFabricaciones } from "@/lib/admin/fabricacion-api";
 import { Fabricacion } from "@/types/fabricacion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from 'lucide-react';
 
 type SortKey = "margin" | "cost" | "name";
 
@@ -105,167 +100,118 @@ export default function FabricacionSection() {
   }, [fabricaciones, sortKey]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-2 sm:p-4 lg:p-0">
-      <header className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900">Centro de fabricación</h1>
-        <p className="text-sm text-neutral-500">
-          Conecta tus recetas con costos reales para entender cuánto cuesta producir cada lote y qué margen estás obteniendo.
-        </p>
+    <div className="p-4 sm:p-6 space-y-6">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Centro de Fabricación</h1>
+          <p className="text-sm text-gray-600">Analiza costos, márgenes y crea nuevas órdenes de fabricación.</p>
+        </div>
+        <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-white shadow-sm hover:bg-amber-700 transition-colors min-h-[44px]">
+          <Plus className="h-4 w-4" />
+          Crear Lote
+        </button>
       </header>
 
       <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Órdenes de fabricación</CardDescription>
-            <CardTitle className="text-2xl font-semibold text-neutral-900">{numberFormatter.format(fabricaciones.length)}</CardTitle>
+            <CardDescription>Órdenes</CardDescription>
+            <CardTitle className="text-2xl font-semibold">{numberFormatter.format(fabricaciones.length)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Costo total estimado</CardDescription>
-            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatCurrency(resumen.totalCost)}</CardTitle>
+            <CardDescription>Costo Total</CardDescription>
+            <CardTitle className="text-2xl font-semibold">{formatCurrency(resumen.totalCost)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Costo unitario promedio</CardDescription>
-            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatCurrency(resumen.avgUnitCost)}</CardTitle>
+            <CardDescription>Costo Unit. Prom.</CardDescription>
+            <CardTitle className="text-2xl font-semibold">{formatCurrency(resumen.avgUnitCost)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Margen promedio</CardDescription>
-            <CardTitle className="text-2xl font-semibold text-neutral-900">{formatPercent(resumen.avgMargin)}</CardTitle>
+            <CardDescription>Margen Prom.</CardDescription>
+            <CardTitle className="text-2xl font-semibold">{formatPercent(resumen.avgMargin)}</CardTitle>
           </CardHeader>
         </Card>
       </section>
 
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="bg-white p-4 sm:p-6 rounded-lg border shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <CardTitle className="text-lg sm:text-xl">Detalle de costos por fabricación</CardTitle>
-            <CardDescription className="text-sm">
-              Analizá cada receta para ajustar tus precios y lograr el margen objetivo.
-            </CardDescription>
+            <h2 className="text-lg sm:text-xl font-semibold">Detalle de Costos</h2>
+            <p className="text-sm text-gray-500">Analiza cada lote para optimizar precios y rentabilidad.</p>
           </div>
-          <div className="flex flex-col gap-2 w-full sm:w-auto md:flex-row md:items-center">
-            <label className="text-sm font-medium text-neutral-500 w-full sm:w-auto" htmlFor="fabricacion-sort">
-              Ordenar por
-            </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="fabricacion-sort" className="text-sm font-medium">Ordenar por</label>
             <select
               id="fabricacion-sort"
               value={sortKey}
-              onChange={(event) => setSortKey(event.target.value as SortKey)}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 shadow-sm focus:border-amber-400 focus:outline-none w-full min-h-[44px]"
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm focus:border-amber-500 focus:outline-none min-h-[44px]"
             >
-              <option value="margin">Margen de ganancia</option>
-              <option value="cost">Costo unitario</option>
+              <option value="margin">Margen</option>
+              <option value="cost">Costo Unitario</option>
               <option value="name">Nombre</option>
             </select>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="overflow-x-auto">
-          {isLoading ? (
-            <div className="flex h-48 w-full items-center justify-center text-sm text-neutral-500">
-              Cargando información de fabricación...
+        <div className="mt-4">
+          {isLoading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
+          {isError && (
+            <div className="p-4 text-red-700 bg-red-50 border border-red-200 rounded-lg">
+              <p className="font-semibold">Error al cargar datos.</p>
+              <p className="text-sm">{error instanceof Error ? error.message : "Intenta de nuevo."}</p>
+              <button onClick={() => refetch()} className="mt-2 px-3 py-1 text-sm border rounded-md">Reintentar</button>
             </div>
-          ) : isError ? (
-            <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 w-full">
-              <p className="font-medium">No pudimos traer los datos de fabricación.</p>
-              <p className="text-red-600">{error instanceof Error ? error.message : "Intenta nuevamente en unos minutos."}</p>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="self-start rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              >
-                Reintentar
-              </button>
-            </div>
-          ) : fabricaciones.length === 0 ? (
-            <div className="flex h-48 w-full items-center justify-center text-sm text-neutral-500">
-              No hay órdenes de fabricación registradas todavía.
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-neutral-200 text-sm w-full">
-              <thead className="hidden md:table-header-group">
-                <tr className="text-left text-neutral-500">
-                  <th className="whitespace-nowrap px-3 py-2 font-medium">Nombre</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium">Producto</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Batch</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo ingredientes</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo total</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Costo unitario</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Precio sugerido</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Margen estimado</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium text-right">Margen objetivo</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium">Último cálculo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {sortedFabricaciones.map((item) => {
-                  const unitCost = computeUnitCost(item);
-                  const margin = computeMargin(item);
-                  return (
-                    <tr key={item.documentId} className="grid grid-cols-1 sm:grid-cols-2 md:table-row gap-y-2 p-4 md:p-0 hover:bg-neutral-50 transition group">
-                      <td className="md:whitespace-nowrap px-3 py-3 font-medium col-span-full sm:col-span-1" data-label="Nombre: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Nombre: </span>
-                        <div className="flex flex-col">
-                          <span>{item.nombre}</span>
-                          {item.lineas && item.lineas.length > 0 && (
-                            <span className="text-xs text-neutral-500">
-                              {item.lineas.length} ingredientes en la fórmula
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 flex justify-between items-center sm:block" data-label="Producto: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Producto: </span>
-                        <span>{item.product?.productName ?? "Sin producto asociado"}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Batch: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Batch: </span>
-                        <span>{numberFormatter.format(item.batchSize)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Costo ingredientes: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Costo ingredientes: </span>
-                        <span>{formatCurrency(item.ingredientesCostoTotal)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Costo total: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Costo total: </span>
-                        <span>{formatCurrency(item.costoTotalBatch)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Costo unitario: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Costo unitario: </span>
-                        <span>{formatCurrency(unitCost)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Precio sugerido: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Precio sugerido: </span>
-                        <span>{formatCurrency(item.precioSugerido)}</span>
-                      </td>
-                      <td
-                        className={`md:whitespace-nowrap px-3 py-3 text-right font-medium flex justify-between items-center sm:block ${margin >= item.margenObjetivoPct ? "text-emerald-600" : "text-amber-600"}`}
-                        data-label="Margen estimado: "
-                      >
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Margen estimado: </span>
-                        <span>{formatPercent(margin)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 text-right flex justify-between items-center sm:block" data-label="Margen objetivo: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Margen objetivo: </span>
-                        <span>{formatPercent(item.margenObjetivoPct)}</span>
-                      </td>
-                      <td className="md:whitespace-nowrap px-3 py-3 flex justify-between items-center sm:block" data-label="Último cálculo: ">
-                        <span className="font-bold text-xs uppercase text-neutral-600 md:hidden">Último cálculo: </span>
-                        <span>{item.lastCalculatedAt ? new Date(item.lastCalculatedAt).toLocaleDateString("es-AR") : "-"}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           )}
-        </CardContent>
-      </Card>
+          {!isLoading && !isError && fabricaciones.length === 0 && (
+            <div className="py-10 text-center text-gray-500">No hay lotes de fabricación.</div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedFabricaciones.map((item) => {
+              const unitCost = computeUnitCost(item);
+              const margin = computeMargin(item);
+              return (
+                <div key={item.documentId} className="bg-white border rounded-lg shadow-sm flex flex-col p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-gray-800">{item.nombre}</h3>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${margin >= item.margenObjetivoPct ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {formatPercent(margin)} Margen
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">{item.product?.productName ?? "Sin producto"}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-3 border-t">
+                    <div>
+                      <p className="text-gray-500">Costo Unitario</p>
+                      <p className="font-medium">{formatCurrency(unitCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Precio Sugerido</p>
+                      <p className="font-medium">{formatCurrency(item.precioSugerido)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Tamaño Lote</p>
+                      <p className="font-medium">{numberFormatter.format(item.batchSize)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Costo Total</p>
+                      <p className="font-medium">{formatCurrency(item.costoTotalBatch)}</p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-right pt-2 border-t mt-auto">
+                    Último cálculo: {item.lastCalculatedAt ? new Date(item.lastCalculatedAt).toLocaleDateString("es-AR") : "N/A"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import RecipeFilters from './RecipeFilters';
 import RecipeTable from './RecipeTable';
 import RecipeForm from './RecipeForm';
 import RecipePreview from './RecipePreview';
+import { Plus } from 'lucide-react';
 
 export default function RecipeSection() {
   const { fetchRecipes, items, meta, loading, selectedRecipe, setSelectedRecipe, totalCount, publishedCount } = useRecipesStore();
@@ -22,7 +23,12 @@ export default function RecipeSection() {
   }, []);
 
   useEffect(() => {
-    if (selectedRecipe) setShowForm(true);
+    if (selectedRecipe) {
+      setShowForm(true);
+    } else {
+      // Opcional: auto-cerrar el form si la receta se des-selecciona desde otro lugar
+      // setShowForm(false);
+    }
   }, [selectedRecipe]);
 
   const headerCounts = useMemo(() => ({ total: totalCount, published: publishedCount }), [totalCount, publishedCount]);
@@ -38,33 +44,31 @@ export default function RecipeSection() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 lg:space-y-8 p-4 sm:p-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Recetas</h1>
-          <p className="text-sm text-muted-foreground">Total: {headerCounts.total} · Publicadas: {headerCounts.published}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 font-garamond">Gestor de Recetas</h1>
+          <p className="text-sm text-gray-600">{headerCounts.total} recetas en total · {headerCounts.published} publicadas</p>
         </div>
-        <button onClick={onNew} className="inline-flex items-center rounded-2xl bg-amber-600 px-4 py-2 text-white shadow hover:bg-amber-700">
+        <button onClick={onNew} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-white shadow-sm hover:bg-amber-700 transition-colors min-h-[44px]">
+          <Plus className="h-4 w-4" />
           Nueva receta
         </button>
-      </div>
+      </header>
 
-      <div className="rounded-2xl bg-[#FBE6D4] p-4 shadow-sm">
-        <RecipeFilters />
-      </div>
-
-      <div className="rounded-2xl bg-white p-4 shadow">
-        <RecipeTable items={items} loading={loading} meta={meta} />
-      </div>
-
-      {showForm && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl bg-white p-4 shadow">
+      {showForm ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2">
             <RecipeForm onClose={onCloseForm} />
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow">
+          <div className="w-full lg:w-1/3 fixed top-0 right-0 h-full bg-white z-20 overflow-y-auto p-6 lg:static lg:h-auto lg:z-auto lg:p-0 lg:bg-transparent">
             <RecipePreview recipe={(selectedRecipe as Recipe | null) || undefined} />
           </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <RecipeFilters />
+          <RecipeTable items={items} loading={loading} meta={meta} />
         </div>
       )}
     </div>

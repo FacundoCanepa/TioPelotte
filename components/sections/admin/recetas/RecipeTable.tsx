@@ -1,9 +1,11 @@
-"use client";
+'use client';
 
 import { useRecipesStore } from '@/store/admin/recipes-store';
 import { Recipe } from '@/types/recipe';
 import { formatDateTime } from '@/utils/dates';
 import { toast } from 'sonner';
+import { Pencil, Trash2, Clock, Users, BookOpen, FileText } from 'lucide-react';
+import Image from 'next/image';
 
 type Props = {
   items: Recipe[];
@@ -20,97 +22,80 @@ export default function RecipeTable({ items, loading, meta }: Props) {
   const pageCount = meta?.pagination?.pageCount ?? 1;
 
   const onDelete = async (r: Recipe) => {
-    const ok = typeof window !== 'undefined' ? window.confirm(`Eliminar receta "${r.titulo}"?`) : false;
-    if (!ok) return;
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar la receta "${r.titulo}"?`)) return;
+
     try {
       await deleteRecipe(r.documentId);
-      toast.success('Receta eliminada');
+      toast.success('Receta eliminada con éxito');
     } catch (e: any) {
-      console.error(e);
-      toast.error('No se pudo eliminar');
+      console.error('Error al eliminar la receta', e);
+      toast.error('No se pudo eliminar la receta. Inténtalo de nuevo.');
     }
   };
 
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500">Cargando recetas...</div>;
+  }
+
+  if (items.length === 0) {
+    return <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg">No se encontraron recetas.</div>;
+  }
+
   return (
-    <div className="w-full">
-      <div className="overflow-x-auto">
-        <table className="min-w-full table-auto">
-          <thead>
-            <tr className="border-b bg-[#FBE6D4] text-left text-sm font-semibold">
-              <th className="px-3 py-2">Título</th>
-              <th className="px-3 py-2">Slug</th>
-              <th className="px-3 py-2">Tiempo</th>
-              <th className="px-3 py-2">Porciones</th>
-              <th className="px-3 py-2">Publicada</th>
-              <th className="px-3 py-2">Actualizada</th>
-              <th className="px-3 py-2">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td className="px-3 py-6 text-center text-sm text-gray-500" colSpan={7}>
-                  Cargando...
-                </td>
-              </tr>
-            )}
-            {!loading && items.length === 0 && (
-              <tr>
-                <td className="px-3 py-6 text-center text-sm text-gray-500" colSpan={7}>
-                  Sin resultados
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              items.map((r) => (
-                <tr key={r.documentId} className="border-b text-sm">
-                  <td className="px-3 py-2 font-medium">{r.titulo}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.slug}</td>
-                  <td className="px-3 py-2">{r.tiempo || '-'}</td>
-                  <td className="px-3 py-2">{r.porciones || '-'}</td>
-                  <td className="px-3 py-2">
-                    {r.publishedAt ? (
-                      <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">Publicada</span>
-                    ) : (
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">Borrador</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{formatDateTime(r.updatedAt)}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-2">
-                      <button
-                        className="rounded-xl border border-gray-300 bg-white px-3 py-1 shadow-sm hover:bg-gray-50"
-                        onClick={() => setSelectedRecipe(r)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="rounded-xl border border-red-200 bg-red-50 px-3 py-1 text-red-700 shadow-sm hover:bg-red-100"
-                        onClick={() => onDelete(r)}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((r) => (
+          <div key={r.documentId} className="bg-white border rounded-lg shadow-sm overflow-hidden flex flex-col">
+            <div className="relative h-40 w-full">
+              {r.featuredImage ? (
+                <Image src={r.featuredImage} alt={r.titulo} layout="fill" objectFit="cover" />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <BookOpen className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div className="p-4 flex-grow flex flex-col">
+              <h3 className="font-semibold text-lg text-gray-800 truncate">{r.titulo}</h3>
+              <div className="flex items-center text-sm text-gray-500 mt-2 gap-4">
+                <span className="flex items-center gap-1"><Clock size={14} /> {r.tiempo || 'N/A'}</span>
+                <span className="flex items-center gap-1"><FileText size={14} /> {r.ingredientes?.length || 0} ing.</span>
+              </div>
+              <div className="flex-grow" />
+              <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
+                <button
+                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                  onClick={() => setSelectedRecipe(r)}
+                  aria-label="Editar receta"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  className="p-2 rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                  onClick={() => onDelete(r)}
+                  aria-label="Eliminar receta"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-      <div className="mt-4 flex items-center justify-between text-sm">
-        <div>
-          Mostrando página {page} de {pageCount} · {total} resultados
+      <div className="mt-6 flex items-center justify-between text-sm">
+        <div className="text-gray-600">
+          Página {page} de {pageCount} ({total} resultados)
         </div>
         <div className="flex gap-2">
           <button
-            className="rounded-xl border border-gray-300 bg-white px-3 py-1 shadow-sm disabled:opacity-50"
+            className="px-3 py-1 rounded-md border bg-white shadow-sm disabled:opacity-50"
             disabled={page <= 1}
             onClick={() => fetchRecipes({ page: page - 1 })}
           >
             Anterior
           </button>
           <button
-            className="rounded-xl border border-gray-300 bg-white px-3 py-1 shadow-sm disabled:opacity-50"
+            className="px-3 py-1 rounded-md border bg-white shadow-sm disabled:opacity-50"
             disabled={page >= pageCount}
             onClick={() => fetchRecipes({ page: page + 1 })}
           >
@@ -121,4 +106,3 @@ export default function RecipeTable({ items, loading, meta }: Props) {
     </div>
   );
 }
-

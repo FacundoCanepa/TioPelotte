@@ -45,16 +45,22 @@ export default function PedidosSection() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-semibold text-[#8B4513] font-garamond">Gestión de pedidos</h1>
-      <div className="flex flex-col sm:flex-row gap-2">
-        <SearchInput value={search} setValue={setSearch} />
+    <section className="space-y-6 lg:space-y-8 p-4 sm:p-6">
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#8B4513] font-garamond">Gestión de pedidos</h1>
+        <p className="text-sm text-gray-600">Filtrá y administrá todos los pedidos de tus clientes.</p>
+      </header>
+
+      <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+        <div className="flex-grow min-w-[200px]">
+          <SearchInput value={search} setValue={setSearch} />
+        </div>
         <select
           value={estado}
           onChange={(e) => setEstado(e.target.value)}
-          className="border p-2 rounded-md bg-white text-[#5A3E1B]"
+          className="border p-2 rounded-lg bg-white text-[#5A3E1B] w-full sm:w-auto min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent"
         >
-          <option value="Todos">Estado</option>
+          <option value="Todos">Estado: Todos</option>
           <option value="Pendiente">Pendiente</option>
           <option value="En camino">En camino</option>
           <option value="Entregado">Entregado</option>
@@ -63,14 +69,15 @@ export default function PedidosSection() {
         <select
           value={entrega}
           onChange={(e) => setEntrega(e.target.value)}
-          className="border p-2 rounded-md bg-white text-[#5A3E1B]"
+          className="border p-2 rounded-lg bg-white text-[#5A3E1B] w-full sm:w-auto min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent"
         >
-          <option value="Todos">Entrega</option>
+          <option value="Todos">Entrega: Todas</option>
           <option value="domicilio">Domicilio</option>
           <option value="local">Local</option>
         </select>
       </div>
+
       <PedidosTable pedidos={filtered} />
-    </div>
+    </section>
   );
 }

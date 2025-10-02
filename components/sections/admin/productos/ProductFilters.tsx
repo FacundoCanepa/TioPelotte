@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Plus } from "lucide-react";
-import SearchInput from "@/components/ui/productos-filters/SearchInput";
+import { X } from 'lucide-react';
+import SearchInput from '@/components/ui/productos-filters/SearchInput';
 
 interface Props {
   search: string;
@@ -15,7 +15,7 @@ interface Props {
   unidades: string[];
   filterLowStock: boolean;
   setFilterLowStock: (v: boolean) => void;
-  onNew: () => void;
+  onClose: () => void;
 }
 
 export default function ProductFilters({
@@ -30,44 +30,89 @@ export default function ProductFilters({
   unidades,
   filterLowStock,
   setFilterLowStock,
-  onNew,
+  onClose,
 }: Props) {
   return (
-    <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
-      <SearchInput value={search} setValue={setSearch} />
+    <div className='flex flex-col h-full p-4 space-y-4 bg-gray-50 lg:bg-transparent'>
+      <div className='flex justify-between items-center lg:hidden'>
+        <h2 className='text-lg font-semibold text-[#8B4513]'>Filtros</h2>
+        <button onClick={onClose} className='p-2 rounded-full hover:bg-gray-200'>
+          <X className='h-5 w-5' />
+        </button>
+      </div>
+      <h2 className='hidden lg:block text-xl font-semibold text-[#8B4513] font-garamond'>
+        Filtrar productos
+      </h2>
 
-      <select value={filterOffer} onChange={(e) => setFilterOffer(e.target.value)} className="border p-2 rounded">
-        <option key="offer-all" value="all">Todas</option>
-        <option key="offer-yes" value="offer">En oferta</option>
-        <option key="offer-no" value="normal">Sin oferta</option>
-      </select>
+      <div className='space-y-1'>
+        <label htmlFor='search-product' className='text-sm font-medium text-gray-700'>
+          Buscar por nombre
+        </label>
+        <SearchInput id='search-product' value={search} setValue={setSearch} />
+      </div>
 
-      <select value={filterActive} onChange={(e) => setFilterActive(e.target.value)} className="border p-2 rounded">
-        <option key="active-all" value="all">Todos</option>
-        <option key="active-yes" value="active">Activos</option>
-        <option key="active-no" value="inactive">Inactivos</option>
-      </select>
+      <div className='space-y-1'>
+        <label htmlFor='filter-offer' className='text-sm font-medium text-gray-700'>
+          Filtrar por oferta
+        </label>
+        <select
+          id='filter-offer'
+          value={filterOffer}
+          onChange={(e) => setFilterOffer(e.target.value)}
+          className='w-full border p-2 rounded-lg bg-white min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent'
+        >
+          <option value='all'>Todas</option>
+          <option value='offer'>En oferta</option>
+          <option value='normal'>Sin oferta</option>
+        </select>
+      </div>
 
-      <select value={filterUnidad} onChange={(e) => setFilterUnidad(e.target.value)} className="border p-2 rounded">
-        <option key="unidad-all" value="all">Unidad</option>
-        {Array.from(new Set((unidades || []).filter(Boolean))).map((u) => (
-          <option key={`unidad-${u}`} value={u}>
-            {u}
-          </option>
-        ))}
-      </select>
+      <div className='space-y-1'>
+        <label htmlFor='filter-active' className='text-sm font-medium text-gray-700'>
+          Filtrar por estado
+        </label>
+        <select
+          id='filter-active'
+          value={filterActive}
+          onChange={(e) => setFilterActive(e.target.value)}
+          className='w-full border p-2 rounded-lg bg-white min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent'
+        >
+          <option value='all'>Todos</option>
+          <option value='active'>Activos</option>
+          <option value='inactive'>Inactivos</option>
+        </select>
+      </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={filterLowStock} onChange={(e) => setFilterLowStock(e.target.checked)} />
-        Stock bajo
-      </label>
+      <div className='space-y-1'>
+        <label htmlFor='filter-unidad' className='text-sm font-medium text-gray-700'>
+          Filtrar por unidad
+        </label>
+        <select
+          id='filter-unidad'
+          value={filterUnidad}
+          onChange={(e) => setFilterUnidad(e.target.value)}
+          className='w-full border p-2 rounded-lg bg-white min-h-[44px] focus:ring-2 focus:ring-[#8B4513] focus:border-transparent'
+        >
+          <option value='all'>Todas las unidades</option>
+          {Array.from(new Set((unidades || []).filter(Boolean))).map((u) => (
+            <option key={`unidad-${u}`} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <button
-        onClick={onNew}
-        className="flex items-center gap-2 px-4 py-2 bg-[#FFF4E3] text-[#8B4513] border border-[#8B4513] rounded-lg hover:bg-[#f5e5cc] transition"
-      >
-        <Plus className="w-4 h-4" /> Nuevo producto
-      </button>
+      <div className='pt-2'>
+        <label className='flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer'>
+          <input
+            type='checkbox'
+            checked={filterLowStock}
+            onChange={(e) => setFilterLowStock(e.target.checked)}
+            className='h-5 w-5 rounded text-[#8B4513] focus:ring-[#8B4513] border-gray-300'
+          />
+          <span className='text-sm font-medium text-gray-800'>Solo stock bajo</span>
+        </label>
+      </div>
     </div>
   );
 }
