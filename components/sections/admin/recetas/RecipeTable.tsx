@@ -59,7 +59,7 @@ export default function RecipeTable({ items, loading, meta }: Props) {
               <h3 className="font-semibold text-lg text-gray-800 truncate">{r.titulo}</h3>
               <div className="flex items-center text-sm text-gray-500 mt-2 gap-4">
                 <span className="flex items-center gap-1"><Clock size={14} /> {r.tiempo || 'N/A'}</span>
-                <span className="flex items-center gap-1"><FileText size={14} /> {r.ingredientes?.length || 0} ing.</span>
+                <span className="flex items-center gap-1"><FileText size={14} /> {r.productosRelacionados?.length || 0} ing.</span>
               </div>
               <div className="flex-grow" />
               <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
