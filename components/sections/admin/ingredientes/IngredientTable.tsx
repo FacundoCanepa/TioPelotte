@@ -63,7 +63,9 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
                 <td className="p-4 font-medium text-gray-800">
                   <div className="flex items-center gap-2">
                     {typeof i.Stock === 'number' && i.Stock <= LOW_STOCK_THRESHOLD ? (
-                      <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" title="Stock bajo" />
+                      <span title="Stock bajo">
+                        <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                      </span>
                     ) : (
                       <Package className="h-5 w-5 text-gray-400 flex-shrink-0" />
                     )}
@@ -118,7 +120,9 @@ export default function IngredientTable({ ingredientes, onEdit, onDelete, orderB
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {typeof i.Stock === 'number' && i.Stock <= LOW_STOCK_THRESHOLD && (
-                      <AlertTriangle className="h-5 w-5 text-red-500" title="Stock bajo" />
+                      <span title="Stock bajo">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                      </span>
                     )}
                 </div>
             </div>
