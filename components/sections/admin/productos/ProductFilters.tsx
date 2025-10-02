@@ -48,7 +48,7 @@ export default function ProductFilters({
         <label htmlFor='search-product' className='text-sm font-medium text-gray-700'>
           Buscar por nombre
         </label>
-        <SearchInput id='search-product' value={search} setValue={setSearch} />
+        <SearchInput value={search} setValue={setSearch} />
       </div>
 
       <div className='space-y-1'>
