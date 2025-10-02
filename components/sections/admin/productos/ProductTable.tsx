@@ -26,7 +26,7 @@ export default function ProductTable({ productos, onEdit, onDelete }: Props) {
   return (
     <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6'>
       {productos.map((p) => {
-        const url = toMediaURL(p.img?.[0]?.url);
+        const url = toMediaURL(Array.isArray(p.img) ? p.img[0]?.url : (p.img as any)?.url);
         const lowStock = typeof p.stock === 'number' && p.stock <= LOW_STOCK_THRESHOLD;
 
         return (
