@@ -9,7 +9,7 @@ interface Props {
 
 export default function ResumenCard({ title, value, icon }: Props) {
   return (
-    <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+    <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4 w-full">
       <div className="text-[#8B4513]">{icon}</div>
       <div>
         <p className="text-sm text-stone-600">{title}</p>

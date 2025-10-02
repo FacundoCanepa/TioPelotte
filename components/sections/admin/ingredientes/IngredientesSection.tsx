@@ -43,10 +43,10 @@ export default function IngredientesSection() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 lg:space-y-10">
       <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#8B4513] font-garamond">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#8B4513] font-garamond">
             Gestión de ingredientes
           </h1>
           <p className="text-sm text-gray-600">

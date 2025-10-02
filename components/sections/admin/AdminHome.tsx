@@ -10,7 +10,7 @@ export default function AdminHome() {
   return (
     <div className="space-y-10">
       <h1 className="text-3xl font-semibold text-[#8B4513] font-garamond">Administración</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {isAdmin && (
           <AdminCard href="/admin/dashboard" title="Dashboard Económico" icon={<BarChart2 className="h-8 w-8" />} />
         )}
@@ -26,4 +26,3 @@ export default function AdminHome() {
     </div>
   );
 }
-

@@ -98,12 +98,12 @@ export default function IngredientFilters({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+    <div className="flex flex-col sm:flex-row gap-2 flex-wrap w-full sm:w-auto">
       <SearchInput value={search} setValue={setSearch} />
       <select
         value={filterUnidad}
         onChange={(e) => setFilterUnidad(e.target.value)}
-        className="border p-2 rounded"
+        className="border p-2 rounded w-full sm:w-auto min-h-[44px]"
       >
         <option value="all">Unidad</option>
         {unidades.map((u) => (
@@ -115,7 +115,7 @@ export default function IngredientFilters({
       <select
         value={filterCategoria}
         onChange={handleCategoryChange}
-        className="border p-2 rounded"
+        className="border p-2 rounded w-full sm:w-auto min-h-[44px]"
       >
         <option value="all">Todas</option>
         {categories.map((category) => (
@@ -124,17 +124,18 @@ export default function IngredientFilters({
           </option>
         ))}
       </select>
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-sm w-full sm:w-auto min-h-[44px]">
         <input
           type="checkbox"
           checked={filterLowStock}
           onChange={(e) => setFilterLowStock(e.target.checked)}
+          className="min-w-[44px] min-h-[44px]"
         />
         Stock bajo
       </label>
       <button
         onClick={onNew}
-        className="flex items-center gap-2 px-4 py-2 bg-[#FFF4E3] text-[#8B4513] border border-[#8B4513] rounded-lg hover:bg-[#f5e5cc] transition"
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-[#FFF4E3] text-[#8B4513] border border-[#8B4513] rounded-lg hover:bg-[#f5e5cc] transition w-full sm:w-auto min-h-[44px]"
       >
         <Plus className="w-4 h-4" /> Nuevo ingrediente
       </button>

@@ -40,7 +40,7 @@ export function IngredientCategoryForm({
             setForm((prev) => ({ ...prev, nombre: event.target.value }))
           }
           placeholder="Ej. Lácteos"
-          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40"
+          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#8B4513] focus:outline-none focus:ring-2 focus:ring-[#8B4513]/40 min-h-[44px]"
           required
         />
       </div>
@@ -49,14 +49,14 @@ export function IngredientCategoryForm({
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center justify-center rounded-2xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
+          className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 min-h-[44px]"
           disabled={saving}
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="inline-flex items-center justify-center rounded-2xl bg-[#8B4513] px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-[#5A3E1B] disabled:opacity-70"
+          className="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl bg-[#8B4513] px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-[#5A3E1B] disabled:opacity-70 min-h-[44px]"
           disabled={saving}
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

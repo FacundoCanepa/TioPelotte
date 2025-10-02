@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       try {
         const res = await fetch("/api/pedidos?populate=*");
         const json = await res.json();
-setPedidos(Array.isArray(json?.data) ? json.data : []);
+        setPedidos(Array.isArray(json?.data) ? json.data : []);
 
       } catch (err) {
         console.error("Error al obtener pedidos:", err);
@@ -117,50 +117,50 @@ setPedidos(Array.isArray(json?.data) ? json.data : []);
   }
 
   return (
-    <div className="space-y-10">
-      <h1 className="text-3xl font-semibold text-[#8B4513] font-garamond">Panel de administración</h1>
+    <div className="space-y-6 lg:space-y-10">
+      <h1 className="text-2xl sm:text-3xl font-semibold text-[#8B4513] font-garamond">Panel de administración</h1>
 
       <VentasChart labels={labels} values={values} />
 
-      <section className="space-y-2">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Filtrar pedidos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]">
             <option value="Todos">Estado: Todos</option>
             <option value="Pendiente">Pendientes</option>
             <option value="En camino">En camino</option>
             <option value="Entregado">Entregados</option>
             <option value="Cancelado">Cancelados</option>
           </select>
-          <select value={ordenFecha} onChange={(e) => setOrdenFecha(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]">
+          <select value={ordenFecha} onChange={(e) => setOrdenFecha(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]">
             <option value="recientes">Fecha: Más recientes</option>
             <option value="antiguos">Fecha: Más antiguos</option>
           </select>
-          <select value={ordenPrecio} onChange={(e) => setOrdenPrecio(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]">
+          <select value={ordenPrecio} onChange={(e) => setOrdenPrecio(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]">
             <option value="ninguno">Precio: Sin ordenar</option>
             <option value="mayor">Precio: Más alto</option>
             <option value="menor">Precio: Más bajo</option>
           </select>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-[#5A3E1B]">De:</label>
-            <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]" />
-            <label className="text-sm text-[#5A3E1B]">Hasta:</label>
-            <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <label htmlFor="fechaDesde" className="text-sm text-[#5A3E1B]">De:</label>
+            <input type="date" id="fechaDesde" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]" />
+            <label htmlFor="fechaHasta" className="text-sm text-[#5A3E1B]">Hasta:</label>
+            <input type="date" id="fechaHasta" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]" />
           </div>
         </div>
       </section>
 
       <PedidosTable pedidos={pedidosOrdenados.slice(0, 20)} />
 
-      <section className="space-y-2">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Filtrar resumen y métricas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select value={filtroEntrega} onChange={(e) => setFiltroEntrega(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <select value={filtroEntrega} onChange={(e) => setFiltroEntrega(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]">
             <option value="Todos">Entrega: Todas</option>
             <option value="domicilio">Domicilio</option>
             <option value="local">Local</option>
           </select>
-          <select value={filtroPago} onChange={(e) => setFiltroPago(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B]">
+          <select value={filtroPago} onChange={(e) => setFiltroPago(e.target.value)} className="border p-2 rounded-md bg-white text-[#5A3E1B] w-full min-h-[44px]">
             <option value="Todos">Pago: Todos</option>
             <option value="efectivo">Efectivo</option>
             <option value="mercado pago">Mercado Pago</option>
@@ -169,9 +169,9 @@ setPedidos(Array.isArray(json?.data) ? json.data : []);
         </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Resumen de estados</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <ResumenCard title="Total vendido" value={`$${totalVendido.toLocaleString("es-AR")}`} icon={<DollarSign className="h-6 w-6" />} />
           <ResumenCard title="Entregados" value={entregados.length} icon={<CheckCircle className="h-6 w-6" />} />
           <ResumenCard title="En camino" value={enCamino.length} icon={<Truck className="h-6 w-6" />} />
@@ -180,18 +180,18 @@ setPedidos(Array.isArray(json?.data) ? json.data : []);
         </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Métodos de pago</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <ResumenCard title="Mercado Pago" value={porMercadoPago} icon={<CreditCard className="h-6 w-6" />} />
           <ResumenCard title="Efectivo" value={porEfectivo} icon={<HandCoins className="h-6 w-6" />} />
           <ResumenCard title="A elección" value={porAElegir} icon={<HelpCircle className="h-6 w-6" />} />
         </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-[#8B4513]">Tipo de entrega</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
           <ResumenCard title="Domicilio" value={porDomicilio} icon={<Truck className="h-6 w-6" />} />
           <ResumenCard title="Local" value={porLocal} icon={<Store className="h-6 w-6" />} />
         </div>
