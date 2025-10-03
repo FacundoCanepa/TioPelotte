@@ -1,4 +1,4 @@
-'''"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, PlusCircle, SlidersHorizontal } from "lucide-react";
@@ -278,7 +278,7 @@ export default function ProductosSection() {
                 unidades={unidades}
                 filterLowStock={filterLowStock}
                 setFilterLowStock={setFilterLowStock}
-                onClose={() => setIsFiltersOpen(false)} // This can be used by the component internally if needed
+                onClose={() => setIsFiltersOpen(false)} 
             />
         </div>
 
@@ -322,4 +322,3 @@ export default function ProductosSection() {
     </div>
   );
 }
-'''
