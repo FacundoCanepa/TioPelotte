@@ -1,4 +1,4 @@
-"use client";
+'''"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, PlusCircle, SlidersHorizontal } from "lucide-react";
@@ -12,7 +12,6 @@ import { useImageUpload } from "./hooks/useImageUpload";
 import { ProductType } from "@/types/product";
 import { toMediaURL } from "@/utils/media";
 import { LOW_STOCK_THRESHOLD } from "@/lib/inventory";
-
 
 const generateSlug = (text: string) =>
   text
@@ -235,29 +234,8 @@ export default function ProductosSection() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6">
-      {/* -- Filtros (Drawer en mobile, Sidebar en desktop) -- */}
-      <aside className={`fixed inset-y-0 left-0 z-20 w-72 bg-white shadow-lg transform ${isFiltersOpen ? "translate-x-0" : "-translate-x-full"} transition-transform lg:static lg:transform-none lg:shadow-none lg:border-r lg:w-80 lg:flex-shrink-0`}>
-        <ProductFilters
-          search={search}
-          setSearch={setSearch}
-          filterOffer={filterOffer}
-          setFilterOffer={setFilterOffer}
-          filterActive={filterActive}
-          setFilterActive={setFilterActive}
-          filterUnidad={filterUnidad}
-          setFilterUnidad={setFilterUnidad}
-          unidades={unidades}
-          filterLowStock={filterLowStock}
-          setFilterLowStock={setFilterLowStock}
-          onClose={() => setIsFiltersOpen(false)} // para cerrar en mobile
-        />
-      </aside>
-
-      {isFiltersOpen && <div className="fixed inset-0 bg-black/30 z-10 lg:hidden" onClick={() => setIsFiltersOpen(false)}></div>}
-
-      {/* -- Contenido Principal -- */}
-      <main className="flex-1 space-y-6 lg:ml-72">
+    <div className="p-4 sm:p-6">
+      <main className="flex-1 space-y-6">
         <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#8B4513] font-garamond">
@@ -269,8 +247,9 @@ export default function ProductosSection() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setIsFiltersOpen(true)}
-              className="lg:hidden inline-flex items-center gap-2 rounded-lg border px-4 py-2 min-h-[44px] hover:bg-gray-100 transition-colors"
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 min-h-[44px] hover:bg-gray-100 transition-colors"
+              aria-expanded={isFiltersOpen}
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span className="sm:hidden">Filtros</span>
@@ -285,6 +264,23 @@ export default function ProductosSection() {
             </button>
           </div>
         </header>
+
+        <div className={`${isFiltersOpen ? 'block' : 'hidden'} bg-gray-50 p-4 rounded-lg`}>
+            <ProductFilters
+                search={search}
+                setSearch={setSearch}
+                filterOffer={filterOffer}
+                setFilterOffer={setFilterOffer}
+                filterActive={filterActive}
+                setFilterActive={setFilterActive}
+                filterUnidad={filterUnidad}
+                setFilterUnidad={setFilterUnidad}
+                unidades={unidades}
+                filterLowStock={filterLowStock}
+                setFilterLowStock={setFilterLowStock}
+                onClose={() => setIsFiltersOpen(false)} // This can be used by the component internally if needed
+            />
+        </div>
 
         {showForm && (
           <>
@@ -326,3 +322,4 @@ export default function ProductosSection() {
     </div>
   );
 }
+'''
