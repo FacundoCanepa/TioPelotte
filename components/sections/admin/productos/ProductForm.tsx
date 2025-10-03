@@ -30,7 +30,7 @@ export default function ProductForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const sabores = useMemo(
-    () => ["fideos", "sorrentinos", "ravioles", "especiales", "ñoquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
+    () => ["pizzas" , "Lasaña" , "fideos", "sorrentinos", "ravioles", "especiales", "ñoquis", "canelones", "filetto", "queso", "flan", "chocotorta", "pastafrola"],
     []
   );
   const unidades = useMemo(() => ["kg", "planchas", "unidad"], []);
