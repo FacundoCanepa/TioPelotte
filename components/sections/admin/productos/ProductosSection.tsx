@@ -257,7 +257,7 @@ export default function ProductosSection() {
       {isFiltersOpen && <div className="fixed inset-0 bg-black/30 z-10 lg:hidden" onClick={() => setIsFiltersOpen(false)}></div>}
 
       {/* -- Contenido Principal -- */}
-      <main className="flex-1 space-y-6">
+      <main className="flex-1 space-y-6 lg:ml-72">
         <header className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#8B4513] font-garamond">
