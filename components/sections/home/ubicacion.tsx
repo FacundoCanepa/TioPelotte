@@ -45,7 +45,7 @@ const Ubicacion = () => {
   return (
     <AnimatedSection className="relative py-16 overflow-hidden">
       <Image
-        src={`${process.env.NEXT_PUBLIC_MEDIA_URL}/photo_1723473620176_8d26dc6314cf_803f81fe52.jpg`}
+        src={`${process.env.NEXT_PUBLIC_MEDIA_URL}/Screenshot_9_a42d7f50b2.png`}
         fill
         className="absolute inset-0 object-cover -z-20"
         alt="Fondo decorativo cálido"

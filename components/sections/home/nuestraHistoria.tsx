@@ -10,13 +10,13 @@ const timeline = [
   {
     text: "Más de 30 años de tradición nos avalan.",
     image:
-      `${process.env.NEXT_PUBLIC_MEDIA_URL}/premium_photo_1661962560564_220abc8b6bf2_f9f2261ff0.avif`,
+      `${process.env.NEXT_PUBLIC_MEDIA_URL}/photo_1676833475462_7f7c3e2c2c2f_1_765a2a1486.avif`,
     alt: "Doña Rosa preparando ravioles",
   },
   {
     text: "Desde los primeros ravioles de Doña Rosa hasta nuestras pastas frescas de hoy, cada creación está llena de amor y dedicación.",
     image:
-      `${process.env.NEXT_PUBLIC_MEDIA_URL}/premium_photo_1661962560564_220abc8b6bf2_f9f2261ff0.avif`,
+      `${process.env.NEXT_PUBLIC_MEDIA_URL}/unnamed_6_f8038e9c38.webp`,
     alt: "Pastas frescas actuales",
   },
 ];

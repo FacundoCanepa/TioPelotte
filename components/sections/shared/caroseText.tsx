@@ -15,7 +15,7 @@ export const datacaroseltop = [
     description: "Frescas, artesanales y con ingredientes de primera calidad.",
     href: "/productos",
     buttonLabel: "Ver productos",
-    img: "/premium_photo_1661962560564_220abc8b6bf2_f9f2261ff0.avif",
+    img: "/photo_1676833475462_7f7c3e2c2c2f_1_765a2a1486.avif",
     alt: "Plato de pastas frescas",
   },
   {
@@ -25,7 +25,7 @@ export const datacaroseltop = [
       "Realizá tu pedido online y recibilo en Abasto, Olmos, Los Hornos y Etcheverry.",
     href: "/ubicacion",
     buttonLabel: "Ver zonas",
-    img: "/photo_1587314168485_3236d6710814_540f67c874.jpg",
+    img: "/photo_1608665000007_990496020c73_1_6e3247b1ca.avif",
     alt: "Caja con pastas para envío a domicilio",
   },
   {
@@ -35,7 +35,7 @@ export const datacaroseltop = [
       "Descubrí los combos y descuentos semanales. Solo en tienda online.",
     href: "/productos?ofertas=true",
     buttonLabel: "Ver descuentos",
-    img: "/photo_1563599175592_c58dc214deff_c3e47ec8bb.jpg",
+    img: "/photo_1465911817134_741b5e473a1b_1_3e96d52879.avif",
     alt: "Variedad de pastas en oferta",
   },
   {
@@ -44,7 +44,7 @@ export const datacaroseltop = [
     description: "Desde hace años, llevando el sabor del pueblo a tu mesa.",
     href: "/historia",
     buttonLabel: "Leer historia",
-    img: "/photo_1465911817134_741b5e473a1b_732b198613.avif",
+    img: "/photo_1447279506476_3faec8071eee_1_525f3bb4da.avif",
     alt: "Chef amasando pastas artesanales",
   },
 ];
